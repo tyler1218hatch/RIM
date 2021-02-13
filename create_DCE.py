@@ -26,11 +26,39 @@ def main(project_path, image_path):
 
     # create project folders and empty mapping shapefiles for first DCE
     arcpy.AddMessage('Creating New DCE...')
-    srs_template = os.path.join(project_path, '03_Analyses', 'DCE_01', "inundation.shp")
+    srs_template = os.path.join(project_path, '02_Mapping', 'DCE_01', "inundation.shp")
+    remove_empty_folders(project_path)
+
     AP_fold = create_next_folder(os.path.join(project_path, '01_Inputs', '01_Imagery'), 'AP')
     DCE_fold = create_next_folder(os.path.join(project_path, '02_Mapping'), 'DCE')
     create_next_folder(os.path.join(project_path, '03_Analysis'), 'DCE')
+
     new_DCE(srs_template, project_path, AP_fold, DCE_fold, image_path)
+
+
+def remove_empty_folders(project_path):
+
+    source_folder = os.path.join(project_path, '01_Inputs', '01_Imagery')
+    all_folders = [dI for dI in os.listdir(source_folder) if os.path.isdir(os.path.join(source_folder, dI))]
+    empty_prefixes = []
+    for folder in all_folders:
+        if not os.listdir(os.path.join(source_folder, folder)):
+            empty_prefixes.append(folder.replace('AP_', ''))
+
+    iterating_folders = [source_folder,
+                        os.path.join(project_path, '02_Mapping'),
+                        os.path.join(project_path, '03_Analysis')]
+
+    for root in iterating_folders:
+        all_folders = [dI for dI in os.listdir(root) if os.path.isdir(os.path.join(root, dI))]
+        for sub in all_folders:
+            for prefix in empty_prefixes:
+                if prefix in sub:
+                    if not os.listdir(os.path.join(root, sub)):
+                        os.rmdir(os.path.join(root, sub))
+                    else:
+                        arcpy.AddWarning('Tried to delete folder that should be empty. {} Should not have content'.format(sub))
+
 
 
 def create_next_folder(source_folder, prefix):
@@ -39,7 +67,8 @@ def create_next_folder(source_folder, prefix):
         prefix += '_'
 
     all_folders = [dI for dI in os.listdir(source_folder) if os.path.isdir(os.path.join(source_folder, dI))]
-    next_folder_num = max([int(f.replace(prefix, '')) for f in all_folders]) + 1
+
+    next_folder_num = max([int(f.replace(prefix, '')) if (prefix in f) else 0 for f in all_folders]) + 1
 
     if next_folder_num < 10:
         next_folder_name = prefix + '0' + str(next_folder_num)
@@ -50,6 +79,7 @@ def create_next_folder(source_folder, prefix):
     os.mkdir(next_folder_path)
 
     return next_folder_path
+
 
 
 # function for create files
@@ -135,7 +165,4 @@ def new_DCE(srs_template, project_path, AP_fold, DCE_fold, image_path):
 if __name__ == "__main__":
     main(sys.argv[1],
          sys.argv[2],
-         sys.argv[3],
-         sys.argv[4],
-         sys.argv[5]
     )
