@@ -22,9 +22,37 @@ import datetime
 
 cfg = ModelConfig('http://xml.riverscapes.xyz/Projects/XSD/V1/Inundation.xsd')
 
+def main(project_path, image_path):
+
+    # create project folders and empty mapping shapefiles for first DCE
+    arcpy.AddMessage('Creating New DCE...')
+    srs_template = os.path.join(project_path, '03_Analyses', 'DCE_01', "inundation.shp")
+    AP_fold = create_next_folder(os.path.join(project_path, '01_Inputs', '01_Imagery'), 'AP')
+    DCE_fold = create_next_folder(os.path.join(project_path, '02_Mapping'), 'DCE')
+    create_next_folder(os.path.join(project_path, '03_Analysis'), 'DCE')
+    new_DCE(srs_template, project_path, AP_fold, DCE_fold, image_path)
+
+
+def create_next_folder(source_folder, prefix):
+
+    if not prefix.endswith('_'):
+        prefix += '_'
+
+    all_folders = [dI for dI in os.listdir(source_folder) if os.path.isdir(os.path.join(source_folder, dI))]
+    next_folder_num = max([int(f.replace(prefix, '')) for f in all_folders]) + 1
+
+    if next_folder_num < 10:
+        next_folder_name = prefix + '0' + str(next_folder_num)
+    else:
+        next_folder_name = prefix + str(next_folder_num)
+
+    next_folder_path = os.path.join(source_folder, next_folder_name)
+    os.mkdir(next_folder_path)
+
+    return next_folder_path
+
+
 # function for create files
-
-
 def new_DCE(srs_template, project_path, AP_fold, DCE_fold, image_path):
 
     #    LayerTypes = {
@@ -62,12 +90,6 @@ def new_DCE(srs_template, project_path, AP_fold, DCE_fold, image_path):
     # set pathway to imagery folder
     image_folder = os.path.join(project_path, '01_Inputs/01_Imagery')
 
-    # create new AP folder
-    if not os.path.exists(os.path.join(image_folder, AP_fold)):
-        os.makedirs(os.path.join(image_folder, AP_fold))
-        AP_path = os.path.join(image_folder, AP_fold)
-    else:
-        AP_path = os.path.join(image_folder, AP_fold)
 
     log.info('copying image to project folder...')
 
@@ -77,7 +99,8 @@ def new_DCE(srs_template, project_path, AP_fold, DCE_fold, image_path):
             arcpy.CopyRaster_management(image_path, os.path.join(AP_folder, 'imagery.tif'))
         else:
             print("existing image already exists in this AP folder")
-    add_image(image_path, AP_path)
+
+    add_image(image_path, AP_fold)
 
     # set pathway to mapping folder
     map_path = os.path.join(project_path, '02_Mapping')
@@ -86,43 +109,33 @@ def new_DCE(srs_template, project_path, AP_fold, DCE_fold, image_path):
     if not os.path.exists(os.path.join(map_path, 'RS_01')):
         os.makedirs(os.path.join(map_path, 'RS_01'))
 
-    # create new DCE folder
-    if not os.path.exists(os.path.join(map_path, DCE_fold)):
-        log.info('creating new DCE shapefiles...')
-        os.makedirs(os.path.join(map_path, DCE_fold))
+    # populate new DCE folder
 
-        # inundation
-        arcpy.CreateFeatureclass_management(os.path.join(map_path, DCE_fold), "inundation.shp", "POLYGON", "", has_m, has_z, spatial_reference)
-        # add field for inundation type
-        arcpy.AddField_management(os.path.join(map_path, DCE_fold, 'inundation.shp'), 'type', "TEXT")
+    log.info('creating new DCE shapefiles...')
 
-        # dam crests
-        arcpy.CreateFeatureclass_management(os.path.join(map_path, DCE_fold), "dam_crests.shp", "POLYLINE", "", has_m, has_z, spatial_reference)
-        # add fields for dam state and crest type
-        arcpy.AddField_management(os.path.join(map_path, DCE_fold, 'dam_crests.shp'), 'dam_state', "TEXT")
-        arcpy.AddField_management(os.path.join(map_path, DCE_fold, 'dam_crests.shp'), 'crest_type', "TEXT")
-        arcpy.AddField_management(os.path.join(map_path, DCE_fold, 'dam_crests.shp'), 'dam_id', "DOUBLE")
+    # inundation
+    arcpy.CreateFeatureclass_management(DCE_fold, "inundation.shp", "POLYGON", "", has_m, has_z, spatial_reference)
+    # add field for inundation type
+    arcpy.AddField_management(os.path.join(DCE_fold, 'inundation.shp'), 'type', "TEXT")
 
-        # thalwegs
-        arcpy.CreateFeatureclass_management(os.path.join(map_path, DCE_fold), "thalwegs.shp", "POLYLINE", "", has_m, has_z, spatial_reference)
-        arcpy.AddField_management(os.path.join(map_path, DCE_fold, 'thalwegs.shp'), 'type', "TEXT")
+    # dam crests
+    arcpy.CreateFeatureclass_management(DCE_fold, "dam_crests.shp", "POLYLINE", "", has_m, has_z, spatial_reference)
+    # add fields for dam state and crest type
+    arcpy.AddField_management(os.path.join(DCE_fold, 'dam_crests.shp'), 'dam_state', "TEXT")
+    arcpy.AddField_management(os.path.join(DCE_fold, 'dam_crests.shp'), 'crest_type', "TEXT")
+    arcpy.AddField_management(os.path.join(DCE_fold, 'dam_crests.shp'), 'dam_id', "DOUBLE")
 
-    else:
-        print("this DCE already exists")
+    # thalwegs
+    arcpy.CreateFeatureclass_management(DCE_fold, "thalwegs.shp", "POLYLINE", "", has_m, has_z, spatial_reference)
+    arcpy.AddField_management(os.path.join(DCE_fold, 'thalwegs.shp'), 'type', "TEXT")
+
     log.info('updating xml with new DCE...')
 
-    # create a folder in Analysis for this DCE
-    analysis_path = os.path.join(project_path, '03_Analysis')
-    if not os.path.exists(os.path.join(analysis_path, DCE_fold)):
-        os.makedirs(os.path.join(analysis_path, DCE_fold))
-        DCEout = os.path.join(analysis_path, DCE_fold)
-        if not os.path.exists(os.path.join(DCEout, 'shapefiles')):
-            os.makedirs(os.path.join(DCEout, 'Shapefiles'))
 
-
-def main():
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('srs_template', help='path to a shapefile with desired output coordinate system', type=str)
-    parser.add_argument('project_path', help='path to output folder', type=str)
-    args = parser.parse_args()
+if __name__ == "__main__":
+    main(sys.argv[1],
+         sys.argv[2],
+         sys.argv[3],
+         sys.argv[4],
+         sys.argv[5]
+    )
