@@ -25,7 +25,6 @@ cfg = ModelConfig('http://xml.riverscapes.xyz/Projects/XSD/V1/Inundation.xsd')
 def main(project_path, srs_template, image_path, DEM_path, hs_path, BRAT_path, VBET_path, site_name, huc):
 
     # create project folders and empty mapping shapefiles for first DCE
-    arcpy.AddMessage('Creating Project... (Takes 1-5 Minutes)')
     make_project(project_path, srs_template, image_path, site_name, huc, BRAT_path, VBET_path, DEM_path, hs_path)
 
 # Description: Create project folders and empty shapefiles for the first Data capture event
@@ -68,6 +67,7 @@ def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_pa
 
     log = Logger('create_project')
     log.info('creating project folders...')
+    arcpy.AddMessage('creating project folders...')
 
     inputs_folder = make_folder(project_path, "01_Inputs")
 
@@ -83,18 +83,24 @@ def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_pa
     make_folder(context_folder, 'WBD')
 
     log.info('copying input files into new project folder...')
+    arcpy.AddMessage('Copying input files into new project folder...')
 
     def add_image(image_path, AP_folder):
         # put input imagery in folder
         arcpy.CopyRaster_management(image_path, os.path.join(AP_folder, 'orthomosaic.png'))
-    add_image(image_path, AP01_folder)
 
+    arcpy.AddMessage('\tCopying imagery...')
+    add_image(image_path, AP01_folder)
     # copy DEM, hillshade to project folder
+    arcpy.AddMessage('\tCopying DEM...')
     arcpy.CopyRaster_management(DEM_path, os.path.join(DEM01_folder, 'DEM.tif'))
+    arcpy.AddMessage('\tCopying Hillshade...')
     arcpy.CopyRaster_management(hs_path, os.path.join(DEM01_folder, 'hlsd.tif'))
 
     # copy BRAT, VBET to project folder
+    arcpy.AddMessage('\tCopying BRAT...')
     arcpy.CopyFeatures_management(BRAT_path, os.path.join(BRAT01_folder, 'BRAT.shp'))
+    arcpy.AddMessage('\tCopying VBET...')
     arcpy.CopyFeatures_management(VBET_path, os.path.join(VBET01_folder, 'VBET.shp'))
 
     # mapping folder
@@ -104,6 +110,7 @@ def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_pa
 
     log = Logger('create_project')
     log.info('creating blank RS and DCE shapefiles...')
+    arcpy.AddMessage('creating blank RS and DCE shapefiles...')
 
     # make empty shapefiles for first DCE
     # Use Describe to get a SpatialReference object
