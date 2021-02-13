@@ -4,18 +4,33 @@ import os
 import arcpy
 import sys
 from settings import ModelConfig
-import uuid
-from lib.project import RSProject, RSLayer
-from lib.util import safe_makedirs
+#import uuid
+#from lib.project import RSProject, RSLayer
+#from lib.util import safe_makedirs
 from lib.loghelper import Logger
-import numpy
-import csv
-import pandas as pd
-import time
-import datetime
+#import numpy
+#import csv
+#import pandas as pd
+#import time
+#import datetime
 arcpy.CheckOutExtension('Spatial')
 
 cfg = ModelConfig('http://xml.riverscapes.xyz/Projects/XSD/V1/Inundation.xsd')
+
+
+##############################
+# STEP 1 - CREATE PROJECT
+
+# Inputs
+def main(project_path, srs_template, image_path, DEM_path, hs_path, BRAT_path, VBET_path, site_name, huc):
+
+    # create project folders and empty mapping shapefiles for first DCE
+    arcpy.AddMessage('Creating Project... (Takes 1-5 Minutes)')
+    make_project(project_path, srs_template, image_path, site_name, huc, BRAT_path, VBET_path, DEM_path, hs_path)
+
+# Description: Create project folders and empty shapefiles for the first Data capture event
+
+
 
 # Functions from BAAT
 
@@ -134,10 +149,17 @@ def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_pa
     make_folder(analysis_folder, "CDs")
     make_folder(analysis_folder, "Summary")
 
+    arcpy.AddMessage('---DONE!---')
 
-def main():
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('srs_template', help='path to a shapefile with desired output coordinate system', type=str)
-    parser.add_argument('project_path', help='path to output folder', type=str)
-    args = parser.parse_args()
+if __name__ == "__main__":
+    main(sys.argv[1],
+         sys.argv[2],
+         sys.argv[3],
+         sys.argv[4],
+         sys.argv[5],
+         sys.argv[6],
+         sys.argv[7],
+         sys.argv[8],
+         sys.argv[9],
+    )
