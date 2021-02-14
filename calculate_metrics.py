@@ -23,7 +23,33 @@ arcpy.CheckOutExtension('Spatial')
 cfg = ModelConfig('http://xml.riverscapes.xyz/Projects/XSD/V1/Inundation.xsd')
 
 
-def calculate_metrics(project_path, RS_folder_name, DEM, mapper, project_name, site_name, DCE1_name, DCE1_date, DCE1_image_source, DCE2_image_source, DCE1_date_name, DCE2_date_name, DCE1_flow_stage, DCE1_active, DCE1_maintained, DCE2_name, DCE2_date, DCE2_flow_stage, DCE2_active, DCE2_maintained, DCE1_res, DCE2_res, setting, huc8):
+def main(project_path,
+         mapper_name,
+         project_name,
+         site_name,
+         setting,
+         huc8,
+         DCE1_date,
+         DCE1_date_name,
+         DCE1_image_source,
+         DCE1_flow_stage,
+         DCE1_active,
+         DCE1_maintained,
+         DCE1_res,
+         DCE2_date,
+         DCE2_date_name,
+         DCE2_image_source,
+         DCE2_flow_stage,
+         DCE2_active,
+         DCE2_maintained,
+         DCE2_res
+         ):
+
+    RS_folder_name = os.path.join(project_path, '02_Mapping', 'RS_01')
+    DEM = os.path.join(project_path, '01_Inputs', '02_Topo', 'DEM_01', 'DEM.tif')
+    DCE1_name = 'DCE_01'
+    DCE2_name = 'DCE_02'
+
 
     # Add VB and VBCL to xml
     log = Logger('build_xml')
@@ -74,7 +100,7 @@ def calculate_metrics(project_path, RS_folder_name, DEM, mapper, project_name, s
         'HUC8': huc8,
         'InundationVersion': cfg.version,
         'site_name': site_name,
-        'mapper': mapper
+        'mapper_name': mapper_name
     })
 
     # Create the inputs container node
@@ -932,3 +958,26 @@ def calculate_metrics(project_path, RS_folder_name, DEM, mapper, project_name, s
     plt.ylabel('% Valley Bottom Inundation')
     plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'pct_types.pdf'))
     plt.show()
+
+if __name__ == "__main__":
+    main(sys.argv[1],
+         sys.argv[2],
+         sys.argv[3],
+         sys.argv[4],
+         sys.argv[5],
+         sys.argv[6],
+         sys.argv[7],
+         sys.argv[8],
+         sys.argv[9],
+         sys.argv[1],
+         sys.argv[10],
+         sys.argv[12],
+         sys.argv[13],
+         sys.argv[14],
+         sys.argv[15],
+         sys.argv[16],
+         sys.argv[17],
+         sys.argv[18],
+         sys.argv[19],
+         sys.argv[20],
+    )
