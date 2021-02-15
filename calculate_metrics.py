@@ -830,7 +830,7 @@ def main(project_path,
         arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'sinAllTwg', 'DOUBLE')
         arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'sinMainTwg', 'DOUBLE')
         arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'setting', 'TEXT')
-        # arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'huc8', 'TEXT')
+        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'huc8', 'TEXT')
 
         with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['len_vall', 'twgLenTot', 'twgLenMain', 'sinAllTwg', 'sinMainTwg', 'setting', 'huc8']) as cursor:
             for row in cursor:
