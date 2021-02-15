@@ -663,10 +663,11 @@ def main(project_path,
         buf_neg = (buf_pos * -1)
         arcpy.Buffer_analysis(polygon, os.path.join(out_folder, 'error_max.shp'), buf_pos)
         arcpy.Buffer_analysis(polygon, os.path.join(out_folder, 'error_min.shp'), buf_neg)
-    err1 = float(DCE1_res) * 3
-    err2 = float(DCE2_res) * 3
-    poly_error_buf(os.path.join(DCE1_out, 'inundation.shp'), err1, DCE1_out)
-    poly_error_buf(os.path.join(DCE2_out, 'inundation.shp'), err2, DCE2_out)
+
+    for DCE, DCE_Object in zip(DCE_path_list, DCE_List):
+        err = float(DCE_Object.resolution) * 3
+        poly_error_buf(os.path.join(DCE, 'inundation.shp'), err, DCE)
+
     # Create min and max extent polygons for each DCE
     for DCE in DCE_path_list:
         log.info('calculating inundation area and percent error...')
