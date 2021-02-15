@@ -457,7 +457,7 @@ def main(project_path,
         arrCL = arcpy.da.FeatureClassToNumPyArray(polyline, ['SHAPE@LENGTH'])
         arrCLLength = arrCL['SHAPE@LENGTH'].sum()
         intWidth = round(arrPolyArea / arrCLLength, 1)
-        print "integrated width =", intWidth
+        arcpy.AddMessage("integrated width ={}".format(intWidth))
         arcpy.AddField_management(polygon, 'intWidth', 'DOUBLE')
         with arcpy.da.UpdateCursor(polygon, ['intWidth']) as cursor:
             for row in cursor:
@@ -486,13 +486,13 @@ def main(project_path,
         vb_area = vb_arrArea['SHAPE@AREA'].sum()
         # calculate inundation percents
         tot_pct = round((tot_area / vb_area) * 100, 1)
-        print "% valley bottom inundation (all types) =", tot_pct
+        arcpy.AddMessage("% valley bottom inundation (all types) = {}".format(tot_pct))
         ff_pct = round((ff_area / vb_area) * 100, 1)
-        print "% free flowing =", ff_pct
+        arcpy.AddMessage("% free flowing =".format(ff_pct))
         pd_pct = round((pd_area / vb_area) * 100, 1)
-        print "% ponded =", pd_pct
+        arcpy.AddMessage("% ponded =".format(pd_pct))
         ov_pct = round((ov_area / vb_area) * 100, 1)
-        print "% overflow =", ov_pct
+        arcpy.AddMessage("% overflow =".format(ov_pct))
 
         # Plot pie chart
         (head, tail) = os.path.split(DCE)
@@ -534,7 +534,7 @@ def main(project_path,
         arcpy.SelectLayerByAttribute_management(in_layer_or_view='inun_union', selection_type="SUBSET_SELECTION", where_clause='\"area\" > 1')
         holes = int(arcpy.GetCount_management('inun_union').getOutput(0))
         arcpy.CopyFeatures_management('inun_union', os.path.join(DCE, 'inun_holes.shp'))
-        print (holes, "holes")
+        arcpy.AddMessage("{} holes".format(holes))
         island_num = holes
 
         # add fields to inundation shapefile
@@ -564,7 +564,7 @@ def main(project_path,
 
     for DCE in DCE_list:
         log.info('calculating inundation area and percent...')
-        print "calculating inundation percents for", DCE, "..."
+        arcpy.AddMessage("calculating inundation percents for {}...".format(DCE))
         inun_fn(os.path.join(DCE, 'inundation.shp'), os.path.join(DCE, 'valley_bottom.shp'))
 
     # Calculate number of islands and perimeter:area ratio
@@ -580,18 +580,18 @@ def main(project_path,
         crestArr = arcpy.da.FeatureClassToNumPyArray(crests_line, ['SHAPE@LENGTH'])
         crest_lenArr = crestArr['SHAPE@LENGTH'].sum()
         crest_CL_rat = round(crest_lenArr / arrCL_len, 1)
-        print "dam crest length (all) : valley length =", crest_CL_rat
+        arcpy.AddMessage("dam crest length (all) : valley length = {}".format(crest_CL_rat))
         # active dam crest to valley length ratio
         act_crestArr = arcpy.da.FeatureClassToNumPyArray(crests_line, ['SHAPE@LENGTH', 'crest_type'], "crest_type = 'active'")
         act_crest_len = act_crestArr['SHAPE@LENGTH'].sum()
         pct_act = (act_crest_len / crest_lenArr) * 100
         act_crest_rat = round(act_crest_len / arrCL_len, 1)
-        print "active dam crest length : valley length =", act_crest_rat
+        arcpy.AddMessage("active dam crest length : valley length = {}".format(act_crest_rat))
         # intact dam crest to valley length ratio
         intact_crestArr = arcpy.da.FeatureClassToNumPyArray(crests_line, ['SHAPE@LENGTH', 'dam_state'], "dam_state = 'intact'")
         intact_crest_len = intact_crestArr['SHAPE@LENGTH'].sum()
         intact_crest_rat = round(intact_crest_len / arrCL_len, 1)
-        print "intact dam crest length : valley length =", intact_crest_rat
+        arcpy.AddMessage("intact dam crest length : valley length = {}".format(intact_crest_rat))
 
         # Calculate number of dams and dam density
         # Make a layer from the feature class
@@ -602,22 +602,22 @@ def main(project_path,
         arcpy.DeleteIdentical_management(os.path.join(project_path, 'damsCount_lyr'), 'dam_id')
         # all dams
         dams_num = int(arcpy.GetCount_management(os.path.join(project_path, 'damsCount_lyr')).getOutput(0))
-        print "number of dams =", dams_num
+        arcpy.AddMessage( "number of dams = {}".format(dams_num))
         # dam density in dams/km
         dam_dens = round((dams_num / arrCL_len) * 1000, 1)
-        print "dam density (dams/km) =", dam_dens
+        arcpy.AddMessage( "dam density (dams/km) = {}".format(dam_dens))
         # intact
         arcpy.SelectLayerByAttribute_management(os.path.join(project_path, 'damsCount_lyr'), 'NEW_SELECTION', "dam_state = 'intact'")
         intact_num = int(arcpy.GetCount_management(os.path.join(project_path, 'damsCount_lyr')).getOutput(0))
-        print "number of intact dams =", intact_num
+        arcpy.AddMessage( "number of intact dams = {}".format(intact_num))
         # breached
         arcpy.SelectLayerByAttribute_management(os.path.join(project_path, 'damsCount_lyr'), 'NEW_SELECTION', "dam_state = 'breached'")
         breached_num = int(arcpy.GetCount_management(os.path.join(project_path, 'damsCount_lyr')).getOutput(0))
-        print "number of breached dams =", breached_num
+        arcpy.AddMessage( "number of breached dams = {}".format(breached_num))
         # blown_out
         arcpy.SelectLayerByAttribute_management(os.path.join(project_path, 'damsCount_lyr'), 'NEW_SELECTION', "dam_state = 'blown_out'")
         blown_out_num = int(arcpy.GetCount_management(os.path.join(project_path, 'damsCount_lyr')).getOutput(0))
-        print "number of blown out dams =", blown_out_num
+        arcpy.AddMessage( "number of blown out dams = {}".format(blown_out_num))
         # delete temporary dams layer
         arcpy.Delete_management(tmp_dams)
 
@@ -671,7 +671,7 @@ def main(project_path,
     # Create min and max extent polygons for each DCE
     for DCE in DCE_list:
         log.info('calculating inundation area and percent error...')
-        print "calculating inundation error calcs for", DCE, "..."
+        arcpy.AddMessage( "calculating inundation error calcs for {}...".format(DCE))
         inun_fn(os.path.join(DCE, 'error_min.shp'), os.path.join(DCE, 'valley_bottom.shp'))
         inun_fn(os.path.join(DCE, 'error_max.shp'), os.path.join(DCE, 'valley_bottom.shp'))
 
