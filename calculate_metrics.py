@@ -875,7 +875,11 @@ def main(project_path,
 
     # Join metrics from both DCE into 1 csv
     # List of all csvs
-    outputs = [os.path.join(project_path, '03_Analysis/DCE_01/01_Metrics/valley_bottom_metrics.csv'), os.path.join(project_path, '03_Analysis/DCE_02/01_Metrics/valley_bottom_metrics.csv')]
+    outputs = []
+
+    for DCE_Object in DCE_List:
+        outputs.append(os.path.join(project_path, '03_Analysis/{}/01_Metrics/valley_bottom_metrics.csv'.format(DCE_Object.name)))
+
     metrics = pd.concat([pd.read_csv(f) for f in outputs])
     # Output csv
     metrics.to_csv(os.path.join(project_path, '03_Analysis/CDs', 'metrics.csv'))
