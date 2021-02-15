@@ -506,21 +506,20 @@ def main(project_path,
         ax1.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
         ax1.axis('equal')
 
-        if not os.path.exists(os.path.join(out_folder, tail, 'inun_types.pdf')):
-            plt.savefig(os.path.join(out_folder, tail, 'inun_types.pdf'))
-            plt.show()
-        elif not os.path.exists(os.path.join(out_folder, tail, 'inun_types_2.pdf')):
-            plt.savefig(os.path.join(out_folder, tail, 'inun_types_2.pdf'))
-            plt.show()
-        elif not os.path.exists(os.path.join(out_folder, tail, 'inun_types_3.pdf')):
-            plt.savefig(os.path.join(out_folder, tail, 'inun_types_3.pdf'))
-            plt.show()
-        elif not os.path.exists(os.path.join(out_folder, tail, 'inun_types_4.pdf')):
-            plt.savefig(os.path.join(out_folder, tail, 'inun_types_4.pdf'))
-            plt.show()
-        else:
-            plt.savefig(os.path.join(out_folder, tail, 'inun_types_5.pdf'))
-            plt.show()
+        pdf_save_location = os.path.join(out_folder, tail, 'inun_types.pdf')
+
+        if os.path.exists(pdf_save_location):
+            os.remove(pdf_save_location)
+
+        plt.savefig(pdf_save_location)
+
+        png_save_location = os.path.join(out_folder, tail, 'inun_types.png')
+
+        if os.path.exists(png_save_location):
+            os.remove(png_save_location)
+
+        plt.savefig(png_save_location)
+
 
         # Find number of exposed bars/ islands
         arcpy.Dissolve_management(in_features=os.path.join(DCE, 'inundation.shp'), out_feature_class=os.path.join(DCE, 'inun_diss.shp'))
@@ -911,7 +910,7 @@ def main(project_path,
     plt.ylabel('% Valley Bottom Inundation')
     plt.ylim(0, 100)
     plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'tot_pct.pdf'))
-    plt.show()
+    plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'tot_pct.png'))
 
     # Plot with total inun area symbolized by type
     ff_area = data.ff_area.tolist()
@@ -934,7 +933,7 @@ def main(project_path,
     plt.xticks(r, names)
     plt.ylabel('Inundated area (m^2)')
     plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'area_types.pdf'))
-    plt.show()
+    plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'area_types.png'))
     # Plot with total inun % symbolized by type
     ff_pct = data.ff_pct.tolist()
     pd_pct = data.pd_pct.tolist()
@@ -957,7 +956,8 @@ def main(project_path,
     plt.ylim(0, 100)
     plt.ylabel('% Valley Bottom Inundation')
     plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'pct_types.pdf'))
-    plt.show()
+    plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'pct_types.png'))
+
 
 if __name__ == "__main__":
     main(sys.argv[1],
