@@ -29,26 +29,42 @@ def main(project_path,
          site_name,
          setting,
          huc8,
-         DCE1_date,
-         DCE1_date_name,
-         DCE1_image_source,
-         DCE1_flow_stage,
-         DCE1_active,
-         DCE1_maintained,
-         DCE1_res,
-         DCE2_date,
-         DCE2_date_name,
-         DCE2_image_source,
-         DCE2_flow_stage,
-         DCE2_active,
-         DCE2_maintained,
-         DCE2_res
+         list_dates,
+         list_date_names,
+         list_image_sources,
+         list_flow_stages,
+         list_actives,
+         list_maintaineds,
+         list_resolutions,
          ):
 
     RS_folder_name = os.path.join(project_path, '02_Mapping', 'RS_01')
     DEM = os.path.join(project_path, '01_Inputs', '02_Topo', 'DEM_01', 'DEM.tif')
-    DCE1_name = 'DCE_01'
-    DCE2_name = 'DCE_02'
+
+    class DCE_object:
+        def __init__(self, date, date_name, image_source, flow_stage, active, maintained, resolution):
+            self.date = date
+            self.date_name = date_name
+            self.image_source = image_source
+            self.flow_stage = flow_stage
+            self.active = active
+            self.maintained = maintained
+            self.resolution = resolution
+
+    DCE_List = []
+
+    for this_DCE, this_date, this_date_name, this_image_source, this_flow_stage, this_active, this_maintained, this_resoultion \
+            in enumerate(zip(list_dates, list_date_names, list_image_sources, list_flow_stages, list_actives, list_maintaineds, list_resolutions)):
+        if this_DCE + 1 < 10:
+            DCE_name = 'DCE_0' + str(this_DCE+1)
+        else:
+            DCE_name = 'DCE_' + str(this_DCE + 1)
+
+        new_DCE = DCE_object(this_date, this_date_name, this_image_source, this_flow_stage, this_active,this_maintained, this_resoultion)
+        DCE_List.append(new_DCE)
+
+
+
 
 
     # Add VB and VBCL to xml
