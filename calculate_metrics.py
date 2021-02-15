@@ -42,7 +42,9 @@ def main(project_path,
     DEM = os.path.join(project_path, '01_Inputs', '02_Topo', 'DEM_01', 'DEM.tif')
 
     class DCE_object:
-        def __init__(self, date, date_name, image_source, flow_stage, active, maintained, resolution):
+        def __init__(self, name, number, date, date_name, image_source, flow_stage, active, maintained, resolution):
+            self.name = name
+            self.number = number
             self.date = date
             self.date_name = date_name
             self.image_source = image_source
@@ -57,10 +59,12 @@ def main(project_path,
             in enumerate(zip(list_dates, list_date_names, list_image_sources, list_flow_stages, list_actives, list_maintaineds, list_resolutions)):
         if this_DCE + 1 < 10:
             DCE_name = 'DCE_0' + str(this_DCE+1)
+            DCE_number = '0' + str(this_DCE+1)
         else:
             DCE_name = 'DCE_' + str(this_DCE + 1)
+            DCE_number = str(this_DCE + 1)
 
-        new_DCE = DCE_object(this_date, this_date_name, this_image_source, this_flow_stage, this_active,this_maintained, this_resoultion)
+        new_DCE = DCE_object(DCE_name, DCE_number, this_date, this_date_name, this_image_source, this_flow_stage, this_active,this_maintained, this_resoultion)
         DCE_List.append(new_DCE)
 
 
@@ -76,35 +80,56 @@ def main(project_path,
     # DCEs = [DCE1_name, DCE2_name]
     LayerTypes = {
         # RSLayer(name, id, tag, rel_path)
-        'VB01': RSLayer('Valley Bottom', 'VB_01', 'Vector', '03_Analysis/DCE_01/Shapefiles/valley_bottom.shp'),
-        'VB_CL01': RSLayer('VB Centerline', 'vbCL_01', 'Vector', '03_Analysis/DCE_01/Shapefiles/vb_centerline.shp'),
-        'PIE01': RSLayer('DCE_01 Inundation Types', 'PIE_01', 'PDF', '03_Analysis/DCE_01/inun_types.pdf'),
-        'Min01': RSLayer('Minimum Inundation Extent', 'Min01', 'Vector', '03_Analysis/DCE_01/Shapefiles/error_min.shp'),
-        'Max01': RSLayer('Maximum Inundation Extent', 'Max01', 'Vector', '03_Analysis/DCE_01/Shapefiles/error_max.shp'),
-        'VB02': RSLayer('Valley Bottom', 'VB_01', 'Vector', '03_Analysis/DCE_02/Shapefiles/valley_bottom.shp'),
-        'VB_CL02': RSLayer('VB Centerline', 'vbCL_01', 'Vector', '03_Analysis/DCE_02/Shapefiles/vb_centerline.shp'),
-        'PIE02': RSLayer('DCE_02 Inundation Types', 'PIE_02', 'PDF', '03_Analysis/DCE_02/inun_types.pdf'),
-        'Min02': RSLayer('Minimum Inundation Extent', 'Min01', 'Vector', '03_Analysis/DCE_02/Shapefiles/error_min.shp'),
-        'Max02': RSLayer('Maximum Inundation Extent', 'Max01', 'Vector', '03_Analysis/DCE_02/Shapefiles/error_max.shp'),
+
         'CD01': RSLayer('Percent Valley Bottom Inundation', 'CD_totPct', 'PDF', '03_Analysis/CDs/tot_pct.pdf'),
         'CD02': RSLayer('Inundated Area', 'CD_area', 'PDF', '03_Analysis/CDs/area_types.pdf'),
         'CD03': RSLayer('Percent Valley Bottom Inundation by Type', 'CD_typePct', 'PDF', '03_Analysis/CDs/pct_types.pdf'),
-        'AP_01': RSLayer(DCE1_date_name, 'AP_01', 'Raster', '01_Inputs/01_Imagery/AP_01/orthomosaic.png'),
-        'DEM': RSLayer('NED 10m DEM', 'DEM', 'DEM', '01_Inputs/02_Topo/DEM_01/DEM.tif'),
-        'HILLSHADE': RSLayer('DEM Hillshade', 'HILLSHADE', 'Raster', '01_Inputs/02_Topo/DEM_01/hlsd.tif'),
         'BRAT': RSLayer('BRAT', 'BRAT', 'Vector', '01_Inputs/03_Context/BRAT_01/BRAT.shp'),
         'VBET': RSLayer('VBET', 'VBET', 'Vector', '01_Inputs/03_Context/VBET_01/VBET.shp'),
         'VB': RSLayer('Valley Bottom', 'VB_01', 'Vector', '02_Mapping/RS_01/valley_bottom.shp'),
         'VB_CL': RSLayer('VB Centerline', 'vbCL_01', 'Vector', '02_Mapping/RS_01/vb_centerline.shp'),
-        'INUN': RSLayer('Inundation', 'DCE_01_inun', 'Vector', '03_Analysis/DCE_01/Shapefiles/inundation.shp'),
-        # RSLayer(name, id, tag, rel_path)
-        'AP_new': RSLayer(DCE2_date_name, 'AP_02', 'Raster', '01_Inputs/01_Imagery/AP_02/imagery.tif'),
-        'INUN_new': RSLayer('Inundation', 'DCE_01_inun', 'Vector', '03_Analysis/DCE_02/Shapefiles/inundation.shp'),
-        'DAM_CREST_new': RSLayer('Dam Crests', 'DCE_01_damcrests', 'Vector', '03_Analysis/DCE_02/Shapefiles/dam_crests.shp'),
-        'TWG_new': RSLayer('Thalwegs', 'DCE_01_thalwegs', 'Vector', '03_Analysis/DCE_02/Shapefiles/thalwegs.shp'),
-        'DAM_CREST': RSLayer('Dam Crests', 'DCE_01_damcrests', 'Vector', '03_Analysis/DCE_01/Shapefiles/dam_crests.shp'),
-        'TWG': RSLayer('Thalwegs', 'DCE_01_thalwegs', 'Vector', '03_Analysis/DCE_01/Shapefiles/thalwegs.shp')
+
+        # Assumes That all DEMs and Hillshades are the same as the first
+        'DEM': RSLayer('NED 10m DEM', 'DEM', 'DEM', '01_Inputs/02_Topo/DEM_01/DEM.tif'),
+        'HILLSHADE': RSLayer('DEM Hillshade', 'HILLSHADE', 'Raster', '01_Inputs/02_Topo/DEM_01/hlsd.tif'),
     }
+
+    for this_DCE in DCE_List:
+        LayerTypes['VB_{}'.format(this_DCE.number)] = \
+            RSLayer('Valley Bottom', 'VB_{}'.format(this_DCE.number), 'Vector',
+                    '03_Analysis/{}/Shapefiles/valley_bottom.shp'.format(this_DCE.name))
+
+        LayerTypes['VB_CL_{}'.format(this_DCE.number)] = \
+            RSLayer('VB Centerline', 'vbCL_{}'.format(this_DCE.number), 'Vector',
+                    '03_Analysis/{}/Shapefiles/vb_centerline.shp'.format(this_DCE.name))
+
+        LayerTypes['PIE_{}'.format(this_DCE.number)] = \
+            RSLayer('{} Inundation Types'.format(this_DCE.name), 'PIE_{}'.format(this_DCE.number), 'PDF',
+                    '03_Analysis/{}/inun_types.pdf'.format(this_DCE.name))
+
+        LayerTypes['Min_{}'.format(this_DCE.number)] = \
+            RSLayer('Minimum Inundation Extent', 'Min{}'.format(this_DCE.number), 'Vector',
+                    '03_Analysis/{}/Shapefiles/error_min.shp'.format(this_DCE.name))
+
+        LayerTypes['Max_{}'.format(this_DCE.number)] = \
+            RSLayer('Maximum Inundation Extent', 'Max{}'.format(this_DCE.number), 'Vector',
+                    '03_Analysis/{}/Shapefiles/error_max.shp'.format(this_DCE.name))
+
+        LayerTypes['AP_{}'.format(this_DCE.number)] = \
+            RSLayer(this_DCE.date_name, 'AP_{}'.format(this_DCE.number), 'Raster',
+                    '01_Inputs/01_Imagery/AP_{}/orthomosaic.png'.format(this_DCE.number))
+
+        LayerTypes['INUN_{}'.format(this_DCE.number)] = \
+            RSLayer('Inundation', 'DCE_{}_inun'.format(this_DCE.number), 'Vector',
+                    '03_Analysis/{}/Shapefiles/inundation.shp'.format(this_DCE.name))
+
+        LayerTypes['DAM_CREST_{}'.format(this_DCE.number)] = \
+            RSLayer('Dam Crests', 'DCE_{}_damcrests'.format(this_DCE.number), 'Vector',
+                    '03_Analysis/{}/Shapefiles/dam_crests.shp'.format(this_DCE.name))
+
+        LayerTypes['TWG_{}'.format(this_DCE.number)] = \
+            RSLayer('Thalwegs', 'DCE_{}_thalwegs'.format(this_DCE.number), 'Vector',
+                    '03_Analysis/{}/Shapefiles/thalwegs.shp'.format(this_DCE.name))
 
     project_name = project_name
     project = RSProject(cfg, project_path.replace('\\', '/'))
