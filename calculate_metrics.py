@@ -41,6 +41,21 @@ def main(project_path,
     RS_folder_name = os.path.join(project_path, '02_Mapping', 'RS_01')
     DEM = os.path.join(project_path, '01_Inputs', '02_Topo', 'DEM_01', 'DEM.tif')
 
+    def split_multi(to_split):
+        return to_split.split(';')
+
+
+    list_dates = split_multi(list_dates)
+    list_date_names = split_multi(list_date_names)
+    list_image_sources = split_multi(list_image_sources)
+    list_flow_stages = split_multi(list_flow_stages)
+    list_actives = split_multi(list_actives)
+    list_maintaineds = split_multi(list_maintaineds)
+    list_resolutions = split_multi(list_resolutions)
+
+    if len({len(i) for i in [list_dates, list_date_names, list_image_sources, list_flow_stages, list_actives, list_maintaineds, list_resolutions]}) != 1:
+        arcpy.AddWarning('Mismatch in expected number of DCEs. Make sure all list inputs have the same length')
+
     class DCE_object:
         def __init__(self, name, number, date, date_name, image_source, flow_stage, active, maintained, resolution):
             self.name = name
@@ -55,7 +70,7 @@ def main(project_path,
 
     DCE_List = []
 
-    for this_DCE, this_date, this_date_name, this_image_source, this_flow_stage, this_active, this_maintained, this_resoultion \
+    for this_DCE, (this_date, this_date_name, this_image_source, this_flow_stage, this_active, this_maintained, this_resoultion) \
             in enumerate(zip(list_dates, list_date_names, list_image_sources, list_flow_stages, list_actives, list_maintaineds, list_resolutions)):
         if this_DCE + 1 < 10:
             DCE_name = 'DCE_0' + str(this_DCE+1)
@@ -66,10 +81,6 @@ def main(project_path,
 
         new_DCE = DCE_object(DCE_name, DCE_number, this_date, this_date_name, this_image_source, this_flow_stage, this_active,this_maintained, this_resoultion)
         DCE_List.append(new_DCE)
-
-
-
-
 
     # Add VB and VBCL to xml
     log = Logger('build_xml')
@@ -201,16 +212,16 @@ def main(project_path,
         }, ap_node)
 
         #Add DCE files to xml
-        project.add_project_vector(inputs_node, LayerTypes['INUN'])
-        project.add_project_vector(inputs_node, LayerTypes['DAM_CREST'])
-        project.add_project_vector(inputs_node, LayerTypes['TWG'])
+        project.add_project_vector(inputs_node, LayerTypes['INUN_{}'.format(this_DCE.number)])
+        project.add_project_vector(inputs_node, LayerTypes['DAM_CREST_{}'.format(this_DCE.number)])
+        project.add_project_vector(inputs_node, LayerTypes['TWG_{}'.format(this_DCE.number)])
 
         # Existing code
-        project.add_project_vector(inputs_node, LayerTypes['VB{}'.format(this_DCE.number)])
-        project.add_project_vector(inputs_node, LayerTypes['VB_CL{}'.format(this_DCE.number)])
-        project.add_project_vector(inputs_node, LayerTypes['Min{}'.format(this_DCE.number)])
-        project.add_project_vector(inputs_node, LayerTypes['Max{}'.format(this_DCE.number)])
-        project.add_project_pdf(outputs_node, LayerTypes['PIE{}'.format(this_DCE.number)])
+        project.add_project_vector(inputs_node, LayerTypes['VB_{}'.format(this_DCE.number)])
+        project.add_project_vector(inputs_node, LayerTypes['VB_CL_{}'.format(this_DCE.number)])
+        project.add_project_vector(inputs_node, LayerTypes['Min_{}'.format(this_DCE.number)])
+        project.add_project_vector(inputs_node, LayerTypes['Max_{}'.format(this_DCE.number)])
+        project.add_project_pdf(outputs_node, LayerTypes['PIE_{}'.format(this_DCE.number)])
 
 
     #TODO not sure if this needs to also iterate
@@ -246,7 +257,6 @@ def main(project_path,
     for this_DCE in DCE_List:
 
         DCE_location = os.path.join(map_folder, this_DCE.name)
-
         make_folder(os.path.join(out_folder, this_DCE.name), '01_Metrics')
 
         DCE_out = make_folder(os.path.join(out_folder, this_DCE.name), 'shapefiles')
@@ -900,11 +910,14 @@ def main(project_path,
     for list1_i, list2_i in Lzip:
         Lerror.append(list1_i - list2_i)
     # The position of the bars on the x-axis
-    r = [0, 1]
+    r = []
+    for index, _ in enumerate(DCE_List):
+        r.append(index)
     # Names of group and bar width
     names = date
     barWidth = 1
     # Create brown bars
+    arcpy.AddMessage(tot_pct)
     plt.bar(r, tot_pct, color='black', edgecolor='white', width=barWidth)
     # Custom X axis
     plt.xticks(r, names)
@@ -923,7 +936,9 @@ def main(project_path,
     # heights of ff + pd
     ffpd_area = np.add(ff_area, pd_area).tolist()
     # The position of the bars on the x-axis
-    r = [0, .5]
+    r = []
+    for index, _ in enumerate(DCE_List):
+        r.append(float(index)/2)
     # Names of group and bar width
     names = date
     barWidth = .5
@@ -945,7 +960,9 @@ def main(project_path,
     # heights of ff + pd
     ffpd_pct = np.add(ff_pct, pd_pct).tolist()
     # The position of the bars on the x-axis
-    r = [0, .5]
+    r = []
+    for index, _ in enumerate(DCE_List):
+        r.append(float(index)/2)
     # Names of group and bar width
     names = date
     barWidth = .5
@@ -973,15 +990,8 @@ if __name__ == "__main__":
          sys.argv[7],
          sys.argv[8],
          sys.argv[9],
-         sys.argv[1],
          sys.argv[10],
+         sys.argv[11],
          sys.argv[12],
          sys.argv[13],
-         sys.argv[14],
-         sys.argv[15],
-         sys.argv[16],
-         sys.argv[17],
-         sys.argv[18],
-         sys.argv[19],
-         sys.argv[20],
     )
