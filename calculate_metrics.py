@@ -327,7 +327,10 @@ def main(project_path,
             arcpy.Buffer_analysis(tmp_pts, tmp_buff, '30 Meters')
             # get min dem z value within each buffer
             arcpy.AddField_management(polyline, out_field, "DOUBLE")
-            out_ZS = arcpy.sa.ZonalStatistics(tmp_buff, "FID", DEM, "MINIMUM", "NODATA")
+            try:
+                out_ZS = arcpy.sa.ZonalStatistics(tmp_buff, "FID", DEM, "MINIMUM", "NODATA")
+            except:
+                raise Exception("Zonal Statistics could not be completed. Please make sure that all of your Thalwegs and Valley Bottom Centerlines have been edited and saved.")
             out_ZS.save(os.path.join(scratch, "out_ZS"))
             tmp_pts2 = os.path.join(scratch, 'tmp_pts2.shp')
             arcpy.sa.ExtractValuesToPoints(tmp_pts, os.path.join(scratch, "out_ZS"), tmp_pts2)
