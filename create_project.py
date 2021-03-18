@@ -23,7 +23,10 @@ cfg = ModelConfig('http://xml.riverscapes.xyz/Projects/XSD/V1/Inundation.xsd')
 
 # Inputs
 def main(project_path, srs_template, image_path, DEM_path, hs_path, BRAT_path, VBET_path, site_name, huc):
-
+    if BRAT_path in ['#', '', None]:
+        BRAT_path = False
+    if VBET_path in ['#', '', None]:
+        VBET_path = False
     # create project folders and empty mapping shapefiles for first DCE
     make_project(project_path, srs_template, image_path, site_name, huc, BRAT_path, VBET_path, DEM_path, hs_path)
 
@@ -78,8 +81,10 @@ def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_pa
     DEM01_folder = make_folder(topo_folder, "DEM_01")
 
     context_folder = make_folder(inputs_folder, "03_Context")
-    BRAT01_folder = make_folder(context_folder, "BRAT_01")
-    VBET01_folder = make_folder(context_folder, "VBET_01")
+    if BRAT_path:
+        BRAT01_folder = make_folder(context_folder, "BRAT_01")
+    if VBET_path:
+        VBET01_folder = make_folder(context_folder, "VBET_01")
     make_folder(context_folder, 'WBD')
 
     log.info('copying input files into new project folder...')
@@ -98,10 +103,12 @@ def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_pa
     arcpy.CopyRaster_management(hs_path, os.path.join(DEM01_folder, 'hlsd.tif'))
 
     # copy BRAT, VBET to project folder
-    arcpy.AddMessage('\tCopying BRAT...')
-    arcpy.CopyFeatures_management(BRAT_path, os.path.join(BRAT01_folder, 'BRAT.shp'))
-    arcpy.AddMessage('\tCopying VBET...')
-    arcpy.CopyFeatures_management(VBET_path, os.path.join(VBET01_folder, 'VBET.shp'))
+    if BRAT_path:
+        arcpy.AddMessage('\tCopying BRAT...')
+        arcpy.CopyFeatures_management(BRAT_path, os.path.join(BRAT01_folder, 'BRAT.shp'))
+    if VBET_path:
+        arcpy.AddMessage('\tCopying VBET...')
+        arcpy.CopyFeatures_management(VBET_path, os.path.join(VBET01_folder, 'VBET.shp'))
 
     # mapping folder
     # subsequent DCE and RS folders are created when a new DCE is made using new dce script
