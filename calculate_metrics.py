@@ -45,7 +45,8 @@ def main(project_path,
     def split_multi(to_split):
         return to_split.split(';')
 
-
+    has_brat = os.path.exists(os.path.join(project_path, '01_Inputs', '03_Context', 'BRAT_01'))
+    has_vbet = os.path.exists(os.path.join(project_path, '01_Inputs', '03_Context', 'VBET_01'))
     list_dates = split_multi(list_dates)
     list_date_names = split_multi(list_date_names)
     list_image_sources = split_multi(list_image_sources)
@@ -181,8 +182,10 @@ def main(project_path,
     project.add_project_raster(inputs, LayerTypes['HILLSHADE'])
 
     # add the input vectors to xml
-    project.add_project_vector(inputs, LayerTypes['BRAT'])
-    project.add_project_vector(inputs, LayerTypes['VBET'])
+    if has_brat:
+        project.add_project_vector(inputs, LayerTypes['BRAT'])
+    if has_vbet:
+        project.add_project_vector(inputs, LayerTypes['VBET'])
 
     # Add RS01 files to xml
     project.add_project_vector(RS01_inputs_node, LayerTypes['VB'])
@@ -665,8 +668,9 @@ def main(project_path,
 
     # Pull attributes from BRAT table
     # Create a BRAT output file clipped to VB poly
-    for DCE in DCE_path_list:
-        arcpy.Clip_analysis(os.path.join(project_path, '01_Inputs', '03_Context', 'BRAT_01', 'BRAT.shp'), os.path.join(DCE, 'valley_bottom.shp'), os.path.join(DCE, 'BRAT_clip.shp'))
+    if has_brat:
+        for DCE in DCE_path_list:
+            arcpy.Clip_analysis(os.path.join(project_path, '01_Inputs', '03_Context', 'BRAT_01', 'BRAT.shp'), os.path.join(DCE, 'valley_bottom.shp'), os.path.join(DCE, 'BRAT_clip.shp'))
 
     # Estimate bankfull with Beechie equation
 
@@ -691,28 +695,29 @@ def main(project_path,
 
     # Add desired site scale variables to valley bottom shapefile
     # BRAT
-    for DCE in DCE_path_list:
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iGeo_DA', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iHyd_QLow', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iHyd_Q2', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iHyd_SPLow', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iHyd_SP2', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iGeo_Slope', 'DOUBLE')
-        # statsFields = [['iGeo_DA', "MEAN"], ['iHyd_QLow', "MEAN"], ['iHyd_Q2', "MEAN"], ['iHyd_SPLow', "MEAN"], ['iHyd_SP2', "MEAN"]]
-        # arcpy.Statistics_analysis(os.path.join(DCE, 'BRAT_clip.shp'), os.path.join(DCE, 'BRAT_TAB'), statsFields)
-        arcpy.Dissolve_management(in_features=os.path.join(DCE, "BRAT_clip.shp"), out_feature_class=os.path.join(DCE, "BRAT_diss"), dissolve_field="iGeo_DA;iHyd_QLow;iHyd_Q2;iHyd_SPLow;iHyd_SP2;iGeo_Slope", statistics_fields="", multi_part="MULTI_PART", unsplit_lines="DISSOLVE_LINES")
-        field_names = ['iGeo_DA', 'iHyd_QLow', 'iHyd_Q2', 'iHyd_SPLow', 'iHyd_SP2', 'iGeo_Slope']
-        with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['iGeo_DA', 'iHyd_QLow', 'iHyd_Q2', 'iHyd_SPLow', 'iHyd_SP2', 'iGeo_Slope']) as Ucursor:
-            for Urow in Ucursor:
-                with arcpy.da.SearchCursor(os.path.join(DCE, 'BRAT_diss.shp'), field_names) as Scursor:
-                    for Srow in Scursor:
-                        Urow[0] = Srow[0]
-                        Urow[1] = Srow[1]
-                        Urow[2] = Srow[2]
-                        Urow[3] = Srow[3]
-                        Urow[4] = Srow[4]
-                        Urow[5] = Srow[5]
-                        Ucursor.updateRow(Urow)
+    if has_brat:
+        for DCE in DCE_path_list:
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iGeo_DA', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iHyd_QLow', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iHyd_Q2', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iHyd_SPLow', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iHyd_SP2', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iGeo_Slope', 'DOUBLE')
+            # statsFields = [['iGeo_DA', "MEAN"], ['iHyd_QLow', "MEAN"], ['iHyd_Q2', "MEAN"], ['iHyd_SPLow', "MEAN"], ['iHyd_SP2', "MEAN"]]
+            # arcpy.Statistics_analysis(os.path.join(DCE, 'BRAT_clip.shp'), os.path.join(DCE, 'BRAT_TAB'), statsFields)
+            arcpy.Dissolve_management(in_features=os.path.join(DCE, "BRAT_clip.shp"), out_feature_class=os.path.join(DCE, "BRAT_diss"), dissolve_field="iGeo_DA;iHyd_QLow;iHyd_Q2;iHyd_SPLow;iHyd_SP2;iGeo_Slope", statistics_fields="", multi_part="MULTI_PART", unsplit_lines="DISSOLVE_LINES")
+            field_names = ['iGeo_DA', 'iHyd_QLow', 'iHyd_Q2', 'iHyd_SPLow', 'iHyd_SP2', 'iGeo_Slope']
+            with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['iGeo_DA', 'iHyd_QLow', 'iHyd_Q2', 'iHyd_SPLow', 'iHyd_SP2', 'iGeo_Slope']) as Ucursor:
+                for Urow in Ucursor:
+                    with arcpy.da.SearchCursor(os.path.join(DCE, 'BRAT_diss.shp'), field_names) as Scursor:
+                        for Srow in Scursor:
+                            Urow[0] = Srow[0]
+                            Urow[1] = Srow[1]
+                            Urow[2] = Srow[2]
+                            Urow[3] = Srow[3]
+                            Urow[4] = Srow[4]
+                            Urow[5] = Srow[5]
+                            Ucursor.updateRow(Urow)
     # main thalweg/ channel slope and length
     for DCE in DCE_path_list:
         arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'grad_chan', 'DOUBLE')
