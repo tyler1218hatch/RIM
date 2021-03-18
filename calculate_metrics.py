@@ -2,6 +2,7 @@
 import os
 import arcpy
 import sys
+import shutil
 from settings import ModelConfig
 import uuid
 from lib.project import RSProject, RSLayer
@@ -892,7 +893,11 @@ def main(project_path,
 
     metrics = pd.concat([pd.read_csv(f) for f in outputs])
     # Output csv
-    metrics.to_csv(os.path.join(project_path, '03_Analysis/CDs', 'metrics.csv'))
+    csv_out = os.path.join(project_path, '03_Analysis/CDs', 'metrics.csv')
+    metrics.to_csv(csv_out)
+    create_detailed_metrics(csv_out)
+
+
 
     # Make Plots
     data = pd.read_csv(os.path.join(project_path, '03_Analysis/CDs/metrics.csv'))
@@ -979,6 +984,186 @@ def main(project_path,
     plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'pct_types.pdf'))
     plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'pct_types.png'))
 
+def create_detailed_metrics(csv_in):
+
+    df = pd.read_csv(csv_in)
+    dce_nums = [x + 1 for x in range(len(df.index))]
+    for first in dce_nums:
+        for second in dce_nums:
+            if first < second:
+
+                first_string = 'DCE_{}'.format(first)
+                second_string = 'DCE_{}'.format(second)
+                new_csv = csv_in.replace('metrics.csv', '{}_to_{}_metrics.csv'.format(first_string, second_string))
+                shutil.copy(csv_in, new_csv)
+                with open(new_csv, 'ab') as fp:
+                    writer = csv.writer(fp)
+                    first_index = first - 1
+                    second_index = second - 1
+                    writer.writerow([''])
+                    new_row = ['{} to {}'.format(first_string, second_string)]
+                    columns = df.columns.tolist()
+                    columns.pop(0)
+                    for column in columns:
+                        new_row.append(column)
+                    writer.writerow(new_row)
+
+                    new_row = ['{} x {}'.format(first_string, second_string)]
+                    to_loop = df.iteritems()
+                    next(to_loop)
+                    for name, column in to_loop:
+                        if type(column[0]) is not str:
+                            new_row.append(column[first_index] * column[second_index])
+                        else:
+                            new_row.append('NA')
+                    writer.writerow(new_row)
+
+                    new_row = ['{} + {}'.format(first_string, second_string)]
+                    to_loop = df.iteritems()
+                    next(to_loop)
+                    for name, column in to_loop:
+                        if type(column[0]) is not str:
+                            new_row.append(column[first_index] + column[second_index])
+                        else:
+                            new_row.append('NA')
+                    writer.writerow(new_row)
+
+                    new_row = ['{} - {}'.format(first_string, second_string)]
+                    to_loop = df.iteritems()
+                    next(to_loop)
+                    for name, column in to_loop:
+                        if type(column[0]) is not str:
+                            new_row.append(column[first_index] - column[second_index])
+                        else:
+                            new_row.append('NA')
+                    writer.writerow(new_row)
+
+                    new_row = ['{} - {}'.format(second_string, first_string)]
+                    to_loop = df.iteritems()
+                    next(to_loop)
+                    for name, column in to_loop:
+                        if type(column[0]) is not str:
+                            new_row.append(column[second_index] - column[first_index])
+                        else:
+                            new_row.append('NA')
+                    writer.writerow(new_row)
+
+                    new_row = ['{} / {}'.format(first_string, second_string)]
+                    to_loop = df.iteritems()
+                    next(to_loop)
+                    for name, column in to_loop:
+                        if type(column[0]) is not str:
+                            new_row.append(column[first_index] / column[second_index])
+                        else:
+                            new_row.append('NA')
+                    writer.writerow(new_row)
+
+                    new_row = ['{} / {}'.format(second_string, first_string)]
+                    to_loop = df.iteritems()
+                    next(to_loop)
+                    for name, column in to_loop:
+                        if type(column[0]) is not str:
+                            new_row.append(column[second_index] / column[first_index])
+                        else:
+                            new_row.append('NA')
+                    writer.writerow(new_row)
+
+                    new_row = ['{} % of Sum'.format(first_string)]
+                    to_loop = df.iteritems()
+                    next(to_loop)
+                    for name, column in to_loop:
+                        if type(column[0]) is not str:
+                            new_row.append(column[first_index] / (column[first_index] + column[second_index]))
+                        else:
+                            new_row.append('NA')
+                    writer.writerow(new_row)
+
+                    new_row = ['{} % of Sum'.format(second_string)]
+                    to_loop = df.iteritems()
+                    next(to_loop)
+                    for name, column in to_loop:
+                        if type(column[0]) is not str:
+                            new_row.append(column[second_index] / (column[first_index] + column[second_index]))
+                        else:
+                            new_row.append('NA')
+                    writer.writerow(new_row)
+
+                    new_row = ['% Change {} to {}'.format(first_string, second_string)]
+                    to_loop = df.iteritems()
+                    next(to_loop)
+                    for name, column in to_loop:
+                        if type(column[0]) is not str:
+                            increase = column[second_index] - column[first_index]
+                            new_row.append(increase / column[first_index])
+                        else:
+                            new_row.append('NA')
+                    writer.writerow(new_row)
+
+                    new_row = ['% Change {} to {}'.format(first_string, first_string)]
+                    to_loop = df.iteritems()
+                    next(to_loop)
+                    for name, column in to_loop:
+                        if type(column[0]) is not str:
+                            increase = column[first_index] - column[second_index]
+                            new_row.append(increase / column[second_index])
+                        else:
+                            new_row.append('NA')
+                    writer.writerow(new_row)
+
+    new_csv = csv_in.replace('metrics.csv', 'Overall_metrics.csv')
+    shutil.copy(csv_in, new_csv)
+    with open(new_csv, 'ab') as fp:
+        writer = csv.writer(fp)
+        writer.writerow('')
+        new_row = ['Minimum']
+        to_loop = df.iteritems()
+        next(to_loop)
+        for name, column in to_loop:
+            if type(column[0]) is not str:
+                new_row.append(min(column))
+            else:
+                new_row.append('NA')
+        writer.writerow(new_row)
+
+        new_row = ['Maximum']
+        to_loop = df.iteritems()
+        next(to_loop)
+        for name, column in to_loop:
+            if type(column[0]) is not str:
+                new_row.append(max(column))
+            else:
+                new_row.append('NA')
+        writer.writerow(new_row)
+
+        new_row = ['Mean']
+        to_loop = df.iteritems()
+        next(to_loop)
+        for name, column in to_loop:
+            if type(column[0]) is not str:
+                new_row.append(numpy.mean(column))
+            else:
+                new_row.append('NA')
+        writer.writerow(new_row)
+
+        new_row = ['Median']
+        to_loop = df.iteritems()
+        next(to_loop)
+        for name, column in to_loop:
+            if type(column[0]) is not str:
+                new_row.append(numpy.median(column))
+            else:
+                new_row.append('NA')
+        writer.writerow(new_row)
+
+        new_row = ['Standard Deviation']
+        to_loop = df.iteritems()
+        next(to_loop)
+        for name, column in to_loop:
+            if type(column[0]) is not str:
+                new_row.append(numpy.std(column))
+            else:
+                new_row.append('NA')
+        writer.writerow(new_row)
 
 if __name__ == "__main__":
     main(sys.argv[1],
