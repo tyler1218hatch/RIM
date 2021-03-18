@@ -22,13 +22,18 @@ cfg = ModelConfig('http://xml.riverscapes.xyz/Projects/XSD/V1/Inundation.xsd')
 # STEP 1 - CREATE PROJECT
 
 # Inputs
-def main(project_path, srs_template, image_path, DEM_path, hs_path, BRAT_path, VBET_path, site_name, huc):
-    if BRAT_path in ['#', '', None]:
-        BRAT_path = False
-    if VBET_path in ['#', '', None]:
-        VBET_path = False
+def main(project_path, srs_template, image_path, DEM_path, hs_path, BRAT_path, VBET_path, site_name, huc, am_dc, am_inun, am_thal, am_vb, am_vbcen):
+    BRAT_path = check_optional(BRAT_path)
+    VBET_path = check_optional(VBET_path)
+    am_dc = check_optional(am_dc)
+    am_inun = check_optional(am_inun)
+    am_thal = check_optional(am_thal)
+    am_vb = check_optional(am_vb)
+    am_vbcen = check_optional(am_vbcen)
+
+    already_mapped = [am_dc, am_inun, am_thal, am_vb, am_vbcen]
     # create project folders and empty mapping shapefiles for first DCE
-    make_project(project_path, srs_template, image_path, site_name, huc, BRAT_path, VBET_path, DEM_path, hs_path)
+    make_project(project_path, srs_template, image_path, site_name, huc, BRAT_path, VBET_path, DEM_path, hs_path, already_mapped)
 
 # Description: Create project folders and empty shapefiles for the first Data capture event
 
@@ -36,7 +41,11 @@ def main(project_path, srs_template, image_path, DEM_path, hs_path, BRAT_path, V
 
 # Functions from BAAT
 
-
+def check_optional(in_parameter):
+    if in_parameter in ['#', '', None]:
+        return False
+    else:
+        return in_parameter
 def make_folder(path_to_location, new_folder_name):
     """
     Makes a folder and returns the path to it
@@ -52,11 +61,17 @@ def make_folder(path_to_location, new_folder_name):
 # RIM project creation functions
 
 
-def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_path, VBET_path, DEM_path, hs_path):
+def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_path, VBET_path, DEM_path, hs_path, already_mapped):
     """
     Creates project folders
     :param project_path: where we want project to be located
     """
+
+    am_dc = already_mapped[0]
+    am_inun = already_mapped[1]
+    am_thal = already_mapped[2]
+    am_vb = already_mapped[3]
+    am_vbcen = already_mapped[4]
 
     # set workspace to desired project location
     arcpy.env.overwriteOutput = True
@@ -123,19 +138,19 @@ def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_pa
     # Use Describe to get a SpatialReference object
     spatial_reference = arcpy.Describe(srs_template).spatialReference
     # inundation
-    if not os.path.exists(os.path.join(DCE01_folder, "inundation.shp")):
+    if not os.path.exists(os.path.join(DCE01_folder, "inundation.shp")) and not am_inun:
         arcpy.CreateFeatureclass_management(DCE01_folder, "inundation.shp", "POLYGON", "", "DISABLED", "DISABLED", spatial_reference)
     # add field for inundation type
         arcpy.AddField_management(os.path.join(DCE01_folder, 'inundation.shp'), 'type', "TEXT")
     # dam crests
-    if not os.path.exists(os.path.join(DCE01_folder, "dam_crests.shp")):
+    if not os.path.exists(os.path.join(DCE01_folder, "dam_crests.shp")) and not am_dc:
         arcpy.CreateFeatureclass_management(DCE01_folder, "dam_crests.shp", "POLYLINE", "", "DISABLED", "DISABLED", spatial_reference)
     # add fields for dam state and crest type
         arcpy.AddField_management(os.path.join(DCE01_folder, 'dam_crests.shp'), 'dam_state', "TEXT")
         arcpy.AddField_management(os.path.join(DCE01_folder, 'dam_crests.shp'), 'crest_type', "TEXT")
         arcpy.AddField_management(os.path.join(DCE01_folder, 'dam_crests.shp'), 'dam_id', "DOUBLE")
     # thalwegs
-    if not os.path.exists(os.path.join(DCE01_folder, "thalwegs.shp")):
+    if not os.path.exists(os.path.join(DCE01_folder, "thalwegs.shp")) and not am_thal:
         arcpy.CreateFeatureclass_management(DCE01_folder, "thalwegs.shp", "POLYLINE", "", "DISABLED", "DISABLED", spatial_reference)
     # add fields for thalweg type
         arcpy.AddField_management(os.path.join(DCE01_folder, 'thalwegs.shp'), 'type', "TEXT")
@@ -143,7 +158,7 @@ def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_pa
     RS01_folder = make_folder(mapping_folder, "RS_01")
     # create empty shapefiles for valley bottom and valley bottom centerline
     # valley bottom
-    if not os.path.exists(os.path.join(RS01_folder, "valley_bottom.shp")):
+    if not os.path.exists(os.path.join(RS01_folder, "valley_bottom.shp")) and not am_vb:
         arcpy.CreateFeatureclass_management(RS01_folder, "valley_bottom.shp", "POLYGON", "", "DISABLED", "DISABLED", spatial_reference)
         arcpy.AddField_management(os.path.join(RS01_folder, 'valley_bottom.shp'), 'site_name', "TEXT")
         arcpy.AddField_management(os.path.join(RS01_folder, 'valley_bottom.shp'), 'huc', "DOUBLE")
@@ -153,8 +168,20 @@ def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_pa
                 row[1] = huc
                 cursor.updateRow(row)
     # valley bottom centerline
-    if not os.path.exists(os.path.join(RS01_folder, "vb_centerline.shp")):
+    if not os.path.exists(os.path.join(RS01_folder, "vb_centerline.shp")) and not am_vbcen:
         arcpy.CreateFeatureclass_management(RS01_folder, "vb_centerline.shp", "POLYLINE", "", "DISABLED", "DISABLED", spatial_reference)
+
+    if am_dc:
+        arcpy.Copy_management(am_vb, os.path.join(DCE01_folder, 'dam_crests.shp'))
+    if am_thal:
+        arcpy.Copy_management(am_vb, os.path.join(DCE01_folder, "inundation.shp"))
+    if am_inun:
+        arcpy.Copy_management(am_vb, os.path.join(DCE01_folder, "thalwegs.shp"))
+    if am_vb:
+        arcpy.Copy_management(am_vb, os.path.join(RS01_folder, "valley_bottom.shp"))
+    if am_vbcen:
+        arcpy.Copy_management(am_vb, os.path.join(RS01_folder, "vb_centerline.shp"))
+
 
     # analysis folder
     analysis_folder = make_folder(project_path, "03_Analysis")
@@ -176,4 +203,9 @@ if __name__ == "__main__":
          sys.argv[7],
          sys.argv[8],
          sys.argv[9],
+         sys.argv[10],
+         sys.argv[11],
+         sys.argv[12],
+         sys.argv[13],
+         sys.argv[14],
     )
