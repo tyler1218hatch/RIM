@@ -140,3 +140,8 @@ organize_inputs.py
 project_raster.py
 settings.py
 XML_DEMO.py
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/RIM.iml
+.idea/vcs.xml
