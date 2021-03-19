@@ -172,15 +172,15 @@ def make_project(project_path, srs_template, image_path, site_name, huc, BRAT_pa
         arcpy.CreateFeatureclass_management(RS01_folder, "vb_centerline.shp", "POLYLINE", "", "DISABLED", "DISABLED", spatial_reference)
 
     if am_dc:
-        arcpy.Copy_management(am_vb, os.path.join(DCE01_folder, 'dam_crests.shp'))
-    if am_thal:
-        arcpy.Copy_management(am_vb, os.path.join(DCE01_folder, "inundation.shp"))
+        arcpy.Copy_management(am_dc, os.path.join(DCE01_folder, 'dam_crests.shp'))
     if am_inun:
-        arcpy.Copy_management(am_vb, os.path.join(DCE01_folder, "thalwegs.shp"))
+        arcpy.Copy_management(am_inun, os.path.join(DCE01_folder, "inundation.shp"))
+    if am_thal:
+        arcpy.Copy_management(am_thal, os.path.join(DCE01_folder, "thalwegs.shp"))
     if am_vb:
         arcpy.Copy_management(am_vb, os.path.join(RS01_folder, "valley_bottom.shp"))
     if am_vbcen:
-        arcpy.Copy_management(am_vb, os.path.join(RS01_folder, "vb_centerline.shp"))
+        arcpy.Copy_management(am_vbcen, os.path.join(RS01_folder, "vb_centerline.shp"))
 
 
     # analysis folder
