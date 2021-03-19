@@ -138,7 +138,6 @@ docs/styleguide.md
 hydraulic_test.py
 organize_inputs.py
 project_raster.py
-settings.py
 XML_DEMO.py
 .idea/inspectionProfiles/profiles_settings.xml
 .idea/misc.xml
