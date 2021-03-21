@@ -41,12 +41,36 @@ def main(project_path,
 
     RS_folder_name = os.path.join(project_path, '02_Mapping', 'RS_01')
     DEM = os.path.join(project_path, '01_Inputs', '02_Topo', 'DEM_01', 'DEM.tif')
+    # Set internal paths
+    map_folder = os.path.join(project_path, '02_Mapping')
+    RS_folder = os.path.join(map_folder, RS_folder_name)
+    intitial_DCE = os.path.join(map_folder, 'DCE_01')
+    out_folder = os.path.join(project_path, '03_Analysis')
+
 
     def split_multi(to_split):
         return to_split.split(';')
 
     has_brat = os.path.exists(os.path.join(project_path, '01_Inputs', '03_Context', 'BRAT_01'))
     has_vbet = os.path.exists(os.path.join(project_path, '01_Inputs', '03_Context', 'VBET_01'))
+
+    has_vb = arcpy.GetCount_management(os.path.join(RS_folder, 'valley_bottom.shp'))[0] != '0'
+    has_vbcen = arcpy.GetCount_management(os.path.join(RS_folder, 'vb_centerline.shp'))[0] != '0'
+    has_thal = arcpy.GetCount_management(os.path.join(intitial_DCE, 'thalwegs.shp'))[0] != '0'
+    has_dam = arcpy.GetCount_management(os.path.join(intitial_DCE, 'dam_crests.shp'))[0] != '0'
+    has_inun = arcpy.GetCount_management(os.path.join(intitial_DCE, 'inundation.shp'))[0] != '0'
+
+    if not has_vb:
+        arcpy.AddWarning("No Mapped Features Detected For Valley Bottom. Analysis Will Not Include Data That Relies On Valley Bottom")
+    if not has_vbcen:
+        arcpy.AddWarning("No Mapped Features Detected For Valley Bottom Centerline. Analysis Will Not Include Data That Relies On Valley Bottom Centerline")
+    if not has_thal:
+        arcpy.AddWarning("No Mapped Features Detected For Thalwegs. Analysis Will Not Include Data That Relies On Thalwegs")
+    if not has_dam:
+        arcpy.AddWarning("No Mapped Features Detected For Dam Crests. Analysis Will Not Include Data That Relies On Dam Crests")
+    if not has_inun:
+        arcpy.AddWarning("No Mapped Features Detected For Inundation. Analysis Will Not Include Data That Relies On Inundation")
+
     list_dates = split_multi(list_dates)
     list_date_names = split_multi(list_date_names)
     list_image_sources = split_multi(list_image_sources)
@@ -108,41 +132,42 @@ def main(project_path,
     }
 
     for this_DCE in DCE_List:
-        LayerTypes['VB_{}'.format(this_DCE.number)] = \
-            RSLayer('Valley Bottom', 'VB_{}'.format(this_DCE.number), 'Vector',
-                    '03_Analysis/{}/Shapefiles/valley_bottom.shp'.format(this_DCE.name))
-
-        LayerTypes['VB_CL_{}'.format(this_DCE.number)] = \
-            RSLayer('VB Centerline', 'vbCL_{}'.format(this_DCE.number), 'Vector',
-                    '03_Analysis/{}/Shapefiles/vb_centerline.shp'.format(this_DCE.name))
-
-        LayerTypes['PIE_{}'.format(this_DCE.number)] = \
-            RSLayer('{} Inundation Types'.format(this_DCE.name), 'PIE_{}'.format(this_DCE.number), 'PDF',
-                    '03_Analysis/{}/inun_types.pdf'.format(this_DCE.name))
-
-        LayerTypes['Min_{}'.format(this_DCE.number)] = \
-            RSLayer('Minimum Inundation Extent', 'Min{}'.format(this_DCE.number), 'Vector',
-                    '03_Analysis/{}/Shapefiles/error_min.shp'.format(this_DCE.name))
-
-        LayerTypes['Max_{}'.format(this_DCE.number)] = \
-            RSLayer('Maximum Inundation Extent', 'Max{}'.format(this_DCE.number), 'Vector',
-                    '03_Analysis/{}/Shapefiles/error_max.shp'.format(this_DCE.name))
 
         LayerTypes['AP_{}'.format(this_DCE.number)] = \
             RSLayer(this_DCE.date_name, 'AP_{}'.format(this_DCE.number), 'Raster',
                     '01_Inputs/01_Imagery/AP_{}/orthomosaic.png'.format(this_DCE.number))
+        if has_vb:
+            LayerTypes['VB_{}'.format(this_DCE.number)] = \
+                RSLayer('Valley Bottom', 'VB_{}'.format(this_DCE.number), 'Vector',
+                        '03_Analysis/{}/Shapefiles/valley_bottom.shp'.format(this_DCE.name))
+        if has_vbcen:
+            LayerTypes['VB_CL_{}'.format(this_DCE.number)] = \
+                RSLayer('VB Centerline', 'vbCL_{}'.format(this_DCE.number), 'Vector',
+                        '03_Analysis/{}/Shapefiles/vb_centerline.shp'.format(this_DCE.name))
+        if has_inun:
+            LayerTypes['PIE_{}'.format(this_DCE.number)] = \
+                RSLayer('{} Inundation Types'.format(this_DCE.name), 'PIE_{}'.format(this_DCE.number), 'PDF',
+                        '03_Analysis/{}/inun_types.pdf'.format(this_DCE.name))
 
-        LayerTypes['INUN_{}'.format(this_DCE.number)] = \
-            RSLayer('Inundation', 'DCE_{}_inun'.format(this_DCE.number), 'Vector',
-                    '03_Analysis/{}/Shapefiles/inundation.shp'.format(this_DCE.name))
+            LayerTypes['Min_{}'.format(this_DCE.number)] = \
+                RSLayer('Minimum Inundation Extent', 'Min{}'.format(this_DCE.number), 'Vector',
+                        '03_Analysis/{}/Shapefiles/error_min.shp'.format(this_DCE.name))
 
-        LayerTypes['DAM_CREST_{}'.format(this_DCE.number)] = \
-            RSLayer('Dam Crests', 'DCE_{}_damcrests'.format(this_DCE.number), 'Vector',
-                    '03_Analysis/{}/Shapefiles/dam_crests.shp'.format(this_DCE.name))
+            LayerTypes['Max_{}'.format(this_DCE.number)] = \
+                RSLayer('Maximum Inundation Extent', 'Max{}'.format(this_DCE.number), 'Vector',
+                        '03_Analysis/{}/Shapefiles/error_max.shp'.format(this_DCE.name))
 
-        LayerTypes['TWG_{}'.format(this_DCE.number)] = \
-            RSLayer('Thalwegs', 'DCE_{}_thalwegs'.format(this_DCE.number), 'Vector',
-                    '03_Analysis/{}/Shapefiles/thalwegs.shp'.format(this_DCE.name))
+            LayerTypes['INUN_{}'.format(this_DCE.number)] = \
+                RSLayer('Inundation', 'DCE_{}_inun'.format(this_DCE.number), 'Vector',
+                        '03_Analysis/{}/Shapefiles/inundation.shp'.format(this_DCE.name))
+        if has_dam:
+            LayerTypes['DAM_CREST_{}'.format(this_DCE.number)] = \
+                RSLayer('Dam Crests', 'DCE_{}_damcrests'.format(this_DCE.number), 'Vector',
+                        '03_Analysis/{}/Shapefiles/dam_crests.shp'.format(this_DCE.name))
+        if has_thal:
+            LayerTypes['TWG_{}'.format(this_DCE.number)] = \
+                RSLayer('Thalwegs', 'DCE_{}_thalwegs'.format(this_DCE.number), 'Vector',
+                        '03_Analysis/{}/Shapefiles/thalwegs.shp'.format(this_DCE.name))
 
     project_name = project_name
     project = RSProject(cfg, project_path.replace('\\', '/'))
@@ -216,16 +241,22 @@ def main(project_path,
         }, ap_node)
 
         #Add DCE files to xml
-        project.add_project_vector(inputs_node, LayerTypes['INUN_{}'.format(this_DCE.number)])
-        project.add_project_vector(inputs_node, LayerTypes['DAM_CREST_{}'.format(this_DCE.number)])
-        project.add_project_vector(inputs_node, LayerTypes['TWG_{}'.format(this_DCE.number)])
+        if has_inun:
+            project.add_project_vector(inputs_node, LayerTypes['INUN_{}'.format(this_DCE.number)])
+        if has_dam:
+            project.add_project_vector(inputs_node, LayerTypes['DAM_CREST_{}'.format(this_DCE.number)])
+        if has_thal:
+            project.add_project_vector(inputs_node, LayerTypes['TWG_{}'.format(this_DCE.number)])
 
         # Existing code
-        project.add_project_vector(inputs_node, LayerTypes['VB_{}'.format(this_DCE.number)])
-        project.add_project_vector(inputs_node, LayerTypes['VB_CL_{}'.format(this_DCE.number)])
-        project.add_project_vector(inputs_node, LayerTypes['Min_{}'.format(this_DCE.number)])
-        project.add_project_vector(inputs_node, LayerTypes['Max_{}'.format(this_DCE.number)])
-        project.add_project_pdf(outputs_node, LayerTypes['PIE_{}'.format(this_DCE.number)])
+        if has_vb:
+            project.add_project_vector(inputs_node, LayerTypes['VB_{}'.format(this_DCE.number)])
+        if has_vbcen:
+            project.add_project_vector(inputs_node, LayerTypes['VB_CL_{}'.format(this_DCE.number)])
+        if has_inun:
+            project.add_project_vector(inputs_node, LayerTypes['Min_{}'.format(this_DCE.number)])
+            project.add_project_vector(inputs_node, LayerTypes['Max_{}'.format(this_DCE.number)])
+            project.add_project_pdf(outputs_node, LayerTypes['PIE_{}'.format(this_DCE.number)])
 
 
     #TODO not sure if this needs to also iterate
@@ -249,11 +280,6 @@ def main(project_path,
 
     log = Logger('set paths')
 
-    # Set internal paths
-    map_folder = os.path.join(project_path, '02_Mapping')
-    RS_folder = os.path.join(map_folder, RS_folder_name)
-    out_folder = os.path.join(project_path, '03_Analysis')
-
     # Copy all RS and DCE mapped shapefiles and save copy to output folder for analysis
 
     DCE_path_list = []
@@ -266,31 +292,37 @@ def main(project_path,
         DCE_out = make_folder(os.path.join(out_folder, this_DCE.name), 'shapefiles')
         DCE_path_list.append(DCE_out)
 
-        arcpy.CopyFeatures_management(os.path.join(RS_folder, 'valley_bottom.shp'), os.path.join(DCE_out, 'valley_bottom.shp'))
-        arcpy.CopyFeatures_management(os.path.join(RS_folder, 'vb_centerline.shp'), os.path.join(DCE_out, 'vb_centerline.shp'))
-        arcpy.CopyFeatures_management(os.path.join(DCE_location, 'thalwegs.shp'), os.path.join(DCE_out, 'thalwegs.shp'))
-        arcpy.CopyFeatures_management(os.path.join(DCE_location, 'dam_crests.shp'), os.path.join(DCE_out, 'dam_crests.shp'))
-        arcpy.CopyFeatures_management(os.path.join(DCE_location, 'inundation.shp'), os.path.join(DCE_out, 'inundation.shp'))
+        if has_vb:
+            arcpy.CopyFeatures_management(os.path.join(RS_folder, 'valley_bottom.shp'), os.path.join(DCE_out, 'valley_bottom.shp'))
+        if has_vbcen:
+            arcpy.CopyFeatures_management(os.path.join(RS_folder, 'vb_centerline.shp'), os.path.join(DCE_out, 'vb_centerline.shp'))
+        if has_thal:
+            arcpy.CopyFeatures_management(os.path.join(DCE_location, 'thalwegs.shp'), os.path.join(DCE_out, 'thalwegs.shp'))
+        if has_dam:
+            arcpy.CopyFeatures_management(os.path.join(DCE_location, 'dam_crests.shp'), os.path.join(DCE_out, 'dam_crests.shp'))
+        if has_inun:
+            arcpy.CopyFeatures_management(os.path.join(DCE_location, 'inundation.shp'), os.path.join(DCE_out, 'inundation.shp'))
 
 
     # Add DCE parameters to valley bottom shapefile
-    for DCE, DCE_Object in zip(DCE_path_list, DCE_List):
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'site_name', "TEXT")
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'date', "TEXT")
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'flow_stage', "TEXT")
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'active', "TEXT")
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maintnd', "TEXT")
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'img_res', "DOUBLE")
+    if has_vb:
+        for DCE, DCE_Object in zip(DCE_path_list, DCE_List):
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'site_name', "TEXT")
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'date', "TEXT")
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'flow_stage', "TEXT")
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'active', "TEXT")
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maintnd', "TEXT")
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'img_res', "DOUBLE")
 
-        with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['site_name', 'date', 'flow_stage', 'active', 'maintnd', 'img_res']) as cursor:
-            for row in cursor:
-                row[0] = site_name
-                row[1] = DCE_Object.date
-                row[2] = DCE_Object.flow_stage
-                row[3] = DCE_Object.active
-                row[4] = DCE_Object.maintained
-                row[5] = DCE_Object.resolution
-                cursor.updateRow(row)
+            with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['site_name', 'date', 'flow_stage', 'active', 'maintnd', 'img_res']) as cursor:
+                for row in cursor:
+                    row[0] = site_name
+                    row[1] = DCE_Object.date
+                    row[2] = DCE_Object.flow_stage
+                    row[3] = DCE_Object.active
+                    row[4] = DCE_Object.maintained
+                    row[5] = DCE_Object.resolution
+                    cursor.updateRow(row)
 
 
     log.info('paths set for DCEs of interest and DEM and input parameters added to VB output shapefile')
@@ -300,10 +332,11 @@ def main(project_path,
     # Calculate reach and valley slope with DEM, Thalweg, and VB_Centerline
     log = Logger('CL_attributes')
     # Create a thalweg file with just the main thalweg
-    for DCE in DCE_path_list:
-        arcpy.MakeFeatureLayer_management(os.path.join(DCE, 'thalwegs.shp'), 'twg_main', "type = 'main'")
-        arcpy.SelectLayerByAttribute_management('twg_main', "NEW_SELECTION")
-        arcpy.CopyFeatures_management('twg_main', os.path.join(DCE, 'twg_main.shp'))
+    if has_thal:
+        for DCE in DCE_path_list:
+            arcpy.MakeFeatureLayer_management(os.path.join(DCE, 'thalwegs.shp'), 'twg_main', "type = 'main'")
+            arcpy.SelectLayerByAttribute_management('twg_main', "NEW_SELECTION")
+            arcpy.CopyFeatures_management('twg_main', os.path.join(DCE, 'twg_main.shp'))
 
     def CL_attributes(polyline, DEM, scratch):
         """
@@ -373,97 +406,103 @@ def main(project_path,
 
     # Run CL_attributes for thalweg to get channel slope and valley bottom centerline to get valley slope
     for DCE in DCE_path_list:
-        log = Logger('DCE CL_attributes')
-        CL_attributes(os.path.join(DCE, 'twg_main.shp'), DEM, project_path)
-        log.info('channel slope and length calculated')
-        log = Logger('RS CL_attributes')
-        CL_attributes(os.path.join(DCE, "vb_centerline.shp"), DEM, project_path)
-        log.info('valley slope and length calculated')
+        if has_thal:
+            log = Logger('DCE CL_attributes')
+            CL_attributes(os.path.join(DCE, 'twg_main.shp'), DEM, project_path)
+            log.info('channel slope and length calculated')
+        if has_vbcen:
+            log = Logger('RS CL_attributes')
+            CL_attributes(os.path.join(DCE, "vb_centerline.shp"), DEM, project_path)
+            log.info('valley slope and length calculated')
 
     log = Logger('calculate attributes')
     # Add and calculate fields for valley bottom shapefile
-    for DCE in DCE_path_list:
-        log.info('calculating valley area...')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'area', 'DOUBLE')
-        fields = ['area', 'SHAPE@AREA']
-        with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), fields) as cursor:
-            for row in cursor:
-                row[0] = row[1]
-                cursor.updateRow(row)
+    if has_vb:
+        for DCE in DCE_path_list:
+            log.info('calculating valley area...')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'area', 'DOUBLE')
+            fields = ['area', 'SHAPE@AREA']
+            with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), fields) as cursor:
+                for row in cursor:
+                    row[0] = row[1]
+                    cursor.updateRow(row)
 
     # Add and calculate fields for thalwegs lengths
 
     # Add and calculate fields for DCE shapefiles
     for DCE in DCE_path_list:
         # inundation
-        log.info('calculating inundatioin areas and perimeters...')
-        inundation = os.path.join(DCE, 'inundation.shp')
-        arcpy.AddField_management(inundation, 'area', 'DOUBLE')
-        arcpy.AddField_management(inundation, 'perimeter', 'DOUBLE')
-        fields = ['area', 'perimeter', 'SHAPE@AREA', 'SHAPE@LENGTH']
-        with arcpy.da.UpdateCursor(inundation, fields) as cursor:
-            for row in cursor:
-                row[0] = row[2]
-                row[1] = row[3]
-                cursor.updateRow(row)
+        if has_inun:
+            log.info('calculating inundatioin areas and perimeters...')
+            inundation = os.path.join(DCE, 'inundation.shp')
+            arcpy.AddField_management(inundation, 'area', 'DOUBLE')
+            arcpy.AddField_management(inundation, 'perimeter', 'DOUBLE')
+            fields = ['area', 'perimeter', 'SHAPE@AREA', 'SHAPE@LENGTH']
+            with arcpy.da.UpdateCursor(inundation, fields) as cursor:
+                for row in cursor:
+                    row[0] = row[2]
+                    row[1] = row[3]
+                    cursor.updateRow(row)
         # dam crests
-        log.info('calculating dam crest lengths...')
-        dam_crests = os.path.join(DCE, 'dam_crests.shp')
-        arcpy.AddField_management(dam_crests, 'length', 'DOUBLE')
-        fields = ['length', 'SHAPE@LENGTH']
-        with arcpy.da.UpdateCursor(dam_crests, fields) as cursor:
-            for row in cursor:
-                row[0] = row[1]
-                cursor.updateRow(row)
+        if has_dam:
+            log.info('calculating dam crest lengths...')
+            dam_crests = os.path.join(DCE, 'dam_crests.shp')
+            arcpy.AddField_management(dam_crests, 'length', 'DOUBLE')
+            fields = ['length', 'SHAPE@LENGTH']
+            with arcpy.da.UpdateCursor(dam_crests, fields) as cursor:
+                for row in cursor:
+                    row[0] = row[1]
+                    cursor.updateRow(row)
 
         # thalwegs (all)
-        log.info('calculating all thalweg lengths...')
-        thalwegs = os.path.join(DCE, 'thalwegs.shp')
-        # calculate thalweg length for all types
-        twgArr = arcpy.da.FeatureClassToNumPyArray(thalwegs, ['SHAPE@LENGTH'])
-        twgTotLen = twgArr['SHAPE@LENGTH'].sum()
-        # calculate other thalweg types
-        # main
-        mainTwgArr = arcpy.da.FeatureClassToNumPyArray(thalwegs, ['SHAPE@LENGTH', 'type'], "type = 'main'")
-        mainTwgLen = mainTwgArr['SHAPE@LENGTH'].sum()
-        mainTwgPct = round(mainTwgLen / twgTotLen, 1)
-        # anabranch
-        anaTwgArr = arcpy.da.FeatureClassToNumPyArray(thalwegs, ['SHAPE@LENGTH', 'type'], "type = 'anabranch'")
-        anaTwgLen = anaTwgArr['SHAPE@LENGTH'].sum()
-        anaTwgPct = round(anaTwgLen / twgTotLen, 1)
-        # split
-        splitTwgArr = arcpy.da.FeatureClassToNumPyArray(thalwegs, ['SHAPE@LENGTH', 'type'], "type = 'split'")
-        splitTwgLen = splitTwgArr['SHAPE@LENGTH'].sum()
-        splitTwgPct = round(splitTwgLen / twgTotLen, 1)
-        # braid
-        braidTwgArr = arcpy.da.FeatureClassToNumPyArray(thalwegs, ['SHAPE@LENGTH', 'type'], "type = 'braid'")
-        braidTwgLen = braidTwgArr['SHAPE@LENGTH'].sum()
-        braidTwgPct = round(braidTwgLen / twgTotLen, 1)
-        # add fields to attribyte table
-        arcpy.AddField_management(thalwegs, 'length', 'DOUBLE')
-        arcpy.AddField_management(thalwegs, 'twgLenTot', 'DOUBLE')
-        arcpy.AddField_management(thalwegs, 'twgLenMain', 'DOUBLE')
-        arcpy.AddField_management(thalwegs, 'twgPctMain', 'DOUBLE')
-        arcpy.AddField_management(thalwegs, 'twgLenAna', 'DOUBLE')
-        arcpy.AddField_management(thalwegs, 'twgPctAna', 'DOUBLE')
-        arcpy.AddField_management(thalwegs, 'twgLenSplt', 'DOUBLE')
-        arcpy.AddField_management(thalwegs, 'twgPctSplt', 'DOUBLE')
-        arcpy.AddField_management(thalwegs, 'twgLenBrd', 'DOUBLE')
-        arcpy.AddField_management(thalwegs, 'twgPctBrd', 'DOUBLE')
+        if has_thal:
+            log.info('calculating all thalweg lengths...')
+            thalwegs = os.path.join(DCE, 'thalwegs.shp')
+            # calculate thalweg length for all types
+            twgArr = arcpy.da.FeatureClassToNumPyArray(thalwegs, ['SHAPE@LENGTH'])
+            twgTotLen = twgArr['SHAPE@LENGTH'].sum()
+            # calculate other thalweg types
+            # main
+            mainTwgArr = arcpy.da.FeatureClassToNumPyArray(thalwegs, ['SHAPE@LENGTH', 'type'], "type = 'main'")
+            mainTwgLen = mainTwgArr['SHAPE@LENGTH'].sum()
+            mainTwgPct = round(mainTwgLen / twgTotLen, 1)
+            # anabranch
+            anaTwgArr = arcpy.da.FeatureClassToNumPyArray(thalwegs, ['SHAPE@LENGTH', 'type'], "type = 'anabranch'")
+            anaTwgLen = anaTwgArr['SHAPE@LENGTH'].sum()
+            anaTwgPct = round(anaTwgLen / twgTotLen, 1)
+            # split
+            splitTwgArr = arcpy.da.FeatureClassToNumPyArray(thalwegs, ['SHAPE@LENGTH', 'type'], "type = 'split'")
+            splitTwgLen = splitTwgArr['SHAPE@LENGTH'].sum()
+            splitTwgPct = round(splitTwgLen / twgTotLen, 1)
+            # braid
+            braidTwgArr = arcpy.da.FeatureClassToNumPyArray(thalwegs, ['SHAPE@LENGTH', 'type'], "type = 'braid'")
+            braidTwgLen = braidTwgArr['SHAPE@LENGTH'].sum()
+            braidTwgPct = round(braidTwgLen / twgTotLen, 1)
+            # add fields to attribute table
+            arcpy.AddField_management(thalwegs, 'length', 'DOUBLE')
+            arcpy.AddField_management(thalwegs, 'twgLenTot', 'DOUBLE')
+            arcpy.AddField_management(thalwegs, 'twgLenMain', 'DOUBLE')
+            arcpy.AddField_management(thalwegs, 'twgPctMain', 'DOUBLE')
+            arcpy.AddField_management(thalwegs, 'twgLenAna', 'DOUBLE')
+            arcpy.AddField_management(thalwegs, 'twgPctAna', 'DOUBLE')
+            arcpy.AddField_management(thalwegs, 'twgLenSplt', 'DOUBLE')
+            arcpy.AddField_management(thalwegs, 'twgPctSplt', 'DOUBLE')
+            arcpy.AddField_management(thalwegs, 'twgLenBrd', 'DOUBLE')
+            arcpy.AddField_management(thalwegs, 'twgPctBrd', 'DOUBLE')
 
-        with arcpy.da.UpdateCursor(thalwegs, ['length', 'twgLenTot', 'twgLenMain', 'twgPctMain', 'twgLenAna', 'twgPctAna', 'twgLenSplt', 'twgPctSplt', 'twgLenBrd', 'twgPctBrd', 'SHAPE@LENGTH']) as cursor:
-            for row in cursor:
-                row[0] = row[10]
-                row[1] = twgTotLen
-                row[2] = mainTwgLen
-                row[3] = mainTwgPct
-                row[4] = anaTwgLen
-                row[5] = anaTwgPct
-                row[6] = splitTwgLen
-                row[7] = splitTwgPct
-                row[8] = braidTwgLen
-                row[9] = braidTwgPct
-                cursor.updateRow(row)
+            with arcpy.da.UpdateCursor(thalwegs, ['length', 'twgLenTot', 'twgLenMain', 'twgPctMain', 'twgLenAna', 'twgPctAna', 'twgLenSplt', 'twgPctSplt', 'twgLenBrd', 'twgPctBrd', 'SHAPE@LENGTH']) as cursor:
+                for row in cursor:
+                    row[0] = row[10]
+                    row[1] = twgTotLen
+                    row[2] = mainTwgLen
+                    row[3] = mainTwgPct
+                    row[4] = anaTwgLen
+                    row[5] = anaTwgPct
+                    row[6] = splitTwgLen
+                    row[7] = splitTwgPct
+                    row[8] = braidTwgLen
+                    row[9] = braidTwgPct
+                    cursor.updateRow(row)
 
     # Calculate integrated valley width and integrated wetted width
 
@@ -481,10 +520,12 @@ def main(project_path,
                 cursor.updateRow(row)
 
     for DCE in DCE_path_list:
-        log.info('calculating integrated valley width...')
-        intWidth_fn(os.path.join(DCE, 'valley_bottom.shp'), os.path.join(DCE, "vb_centerline.shp"))
-        log.info('calculating integrated wetted width...')
-        intWidth_fn(os.path.join(DCE, 'inundation.shp'), os.path.join(DCE, 'twg_main.shp'))
+        if has_vb and has_vbcen:
+            log.info('calculating integrated valley width...')
+            intWidth_fn(os.path.join(DCE, 'valley_bottom.shp'), os.path.join(DCE, "vb_centerline.shp"))
+        if has_inun and has_thal:
+            log.info('calculating integrated wetted width...')
+            intWidth_fn(os.path.join(DCE, 'inundation.shp'), os.path.join(DCE, 'twg_main.shp'))
 
     # Calculate total inundated area and percent and inundated area and percent by inundation type
 
@@ -579,9 +620,10 @@ def main(project_path,
                 cursor.updateRow(row)
 
     for DCE in DCE_path_list:
-        log.info('calculating inundation area and percent...')
-        arcpy.AddMessage("calculating inundation percents for {}...".format(DCE))
-        inun_fn(os.path.join(DCE, 'inundation.shp'), os.path.join(DCE, 'valley_bottom.shp'))
+        if has_inun and has_vb:
+            log.info('calculating inundation area and percent...')
+            arcpy.AddMessage("calculating inundation percents for {}...".format(DCE))
+            inun_fn(os.path.join(DCE, 'inundation.shp'), os.path.join(DCE, 'valley_bottom.shp'))
 
     # Calculate number of islands and perimeter:area ratio
 
@@ -664,7 +706,8 @@ def main(project_path,
                 cursor.updateRow(row)
 
     for DCE in DCE_path_list:
-        dam_crests_fn(os.path.join(DCE, 'dam_crests.shp'), os.path.join(DCE, 'vb_centerline.shp'))
+        if has_dam and has_vbcen:
+            dam_crests_fn(os.path.join(DCE, 'dam_crests.shp'), os.path.join(DCE, 'vb_centerline.shp'))
 
     # Pull attributes from BRAT table
     # Create a BRAT output file clipped to VB poly
@@ -683,19 +726,21 @@ def main(project_path,
         arcpy.Buffer_analysis(polygon, os.path.join(out_folder, 'error_min.shp'), buf_neg)
 
     for DCE, DCE_Object in zip(DCE_path_list, DCE_List):
-        err = float(DCE_Object.resolution) * 3
-        poly_error_buf(os.path.join(DCE, 'inundation.shp'), err, DCE)
+        if has_inun:
+            err = float(DCE_Object.resolution) * 3
+            poly_error_buf(os.path.join(DCE, 'inundation.shp'), err, DCE)
 
     # Create min and max extent polygons for each DCE
     for DCE in DCE_path_list:
-        log.info('calculating inundation area and percent error...')
-        arcpy.AddMessage( "calculating inundation error calcs for {}...".format(DCE))
-        inun_fn(os.path.join(DCE, 'error_min.shp'), os.path.join(DCE, 'valley_bottom.shp'))
-        inun_fn(os.path.join(DCE, 'error_max.shp'), os.path.join(DCE, 'valley_bottom.shp'))
+        if has_inun and has_vb:
+            log.info('calculating inundation area and percent error...')
+            arcpy.AddMessage( "calculating inundation error calcs for {}...".format(DCE))
+            inun_fn(os.path.join(DCE, 'error_min.shp'), os.path.join(DCE, 'valley_bottom.shp'))
+            inun_fn(os.path.join(DCE, 'error_max.shp'), os.path.join(DCE, 'valley_bottom.shp'))
 
     # Add desired site scale variables to valley bottom shapefile
     # BRAT
-    if has_brat:
+    if has_brat and has_vb:
         for DCE in DCE_path_list:
             arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iGeo_DA', 'DOUBLE')
             arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'iHyd_QLow', 'DOUBLE')
@@ -719,278 +764,290 @@ def main(project_path,
                             Urow[5] = Srow[5]
                             Ucursor.updateRow(Urow)
     # main thalweg/ channel slope and length
-    for DCE in DCE_path_list:
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'grad_chan', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'len_chan', 'DOUBLE')
-        with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['grad_chan', 'len_chan']) as Ucursor:
-            for Urow in Ucursor:
-                with arcpy.da.SearchCursor(os.path.join(DCE, 'twg_main.shp'), ['slope', 'length']) as Scursor:
-                    for Srow in Scursor:
-                        Urow[0] = Srow[0]
-                        Urow[1] = Srow[1]
-                        Ucursor.updateRow(Urow)
-    # thalwegs (all)
-    for DCE in DCE_path_list:
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'twgLenTot', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'twgLenMain', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'twgPctMain', 'DOUBLE')
-        with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['twgLenTot', 'twgLenMain', 'twgPctMain']) as Ucursor:
-            for Urow in Ucursor:
-                with arcpy.da.SearchCursor(os.path.join(DCE, 'thalwegs.shp'), ['twgLenTot', 'twgLenMain', 'twgPctMain']) as Scursor:
-                    for Srow in Scursor:
-                        Urow[0] = Srow[0]
-                        Urow[1] = Srow[1]
-                        Urow[2] = Srow[2]
-                        Ucursor.updateRow(Urow)
+    if has_vb and has_thal:
+        for DCE in DCE_path_list:
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'grad_chan', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'len_chan', 'DOUBLE')
+            with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['grad_chan', 'len_chan']) as Ucursor:
+                for Urow in Ucursor:
+                    with arcpy.da.SearchCursor(os.path.join(DCE, 'twg_main.shp'), ['slope', 'length']) as Scursor:
+                        for Srow in Scursor:
+                            Urow[0] = Srow[0]
+                            Urow[1] = Srow[1]
+                            Ucursor.updateRow(Urow)
+        # thalwegs (all)
+        for DCE in DCE_path_list:
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'twgLenTot', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'twgLenMain', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'twgPctMain', 'DOUBLE')
+            with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['twgLenTot', 'twgLenMain', 'twgPctMain']) as Ucursor:
+                for Urow in Ucursor:
+                    with arcpy.da.SearchCursor(os.path.join(DCE, 'thalwegs.shp'), ['twgLenTot', 'twgLenMain', 'twgPctMain']) as Scursor:
+                        for Srow in Scursor:
+                            Urow[0] = Srow[0]
+                            Urow[1] = Srow[1]
+                            Urow[2] = Srow[2]
+                            Ucursor.updateRow(Urow)
+
     # valley bottom centerline
-    for DCE in DCE_path_list:
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'grad_vall', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'len_vall', 'DOUBLE')
-        with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['grad_vall', 'len_vall']) as Ucursor:
-            for Urow in Ucursor:
-                with arcpy.da.SearchCursor(os.path.join(DCE, 'vb_centerline.shp'), ['slope', 'length']) as Scursor:
-                    for Srow in Scursor:
-                        Urow[0] = Srow[0]
-                        Urow[1] = Srow[1]
-                        Ucursor.updateRow(Urow)
+    if has_vb and has_vbcen:
+        for DCE in DCE_path_list:
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'grad_vall', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'len_vall', 'DOUBLE')
+            with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['grad_vall', 'len_vall']) as Ucursor:
+                for Urow in Ucursor:
+                    with arcpy.da.SearchCursor(os.path.join(DCE, 'vb_centerline.shp'), ['slope', 'length']) as Scursor:
+                        for Srow in Scursor:
+                            Urow[0] = Srow[0]
+                            Urow[1] = Srow[1]
+                            Ucursor.updateRow(Urow)
     # dam crests
-    for DCE in DCE_path_list:
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'dams_num', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'dam_dens', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'intact_num', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'breach_num', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'blown_num', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ratio_all', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ratio_act', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ratio_int', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'crstPctAct', 'DOUBLE')
+    if has_vb and has_dam:
+        for DCE in DCE_path_list:
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'dams_num', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'dam_dens', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'intact_num', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'breach_num', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'blown_num', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ratio_all', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ratio_act', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ratio_int', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'crstPctAct', 'DOUBLE')
 
-        with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['dams_num', 'dam_dens', 'intact_num', 'breach_num', 'blown_num', 'ratio_all', 'ratio_act', 'ratio_int', 'crstPctAct']) as Ucursor:
-            for Urow in Ucursor:
-                with arcpy.da.SearchCursor(os.path.join(DCE, 'dam_crests.shp'), ['dams_num', 'dam_dens', 'intact_num', 'breach_num', 'blown_num', 'ratio_all', 'ratio_act', 'ratio_int', 'crstPctAct']) as Scursor:
-                    for Srow in Scursor:
-                        Urow[0] = Srow[0]
-                        Urow[1] = Srow[1]
-                        Urow[2] = Srow[2]
-                        Urow[3] = Srow[3]
-                        Urow[4] = Srow[4]
-                        Urow[5] = Srow[5]
-                        Urow[6] = Srow[6]
-                        Urow[7] = Srow[7]
-                        Urow[8] = Srow[8]
-                        Ucursor.updateRow(Urow)
+            with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['dams_num', 'dam_dens', 'intact_num', 'breach_num', 'blown_num', 'ratio_all', 'ratio_act', 'ratio_int', 'crstPctAct']) as Ucursor:
+                for Urow in Ucursor:
+                    with arcpy.da.SearchCursor(os.path.join(DCE, 'dam_crests.shp'), ['dams_num', 'dam_dens', 'intact_num', 'breach_num', 'blown_num', 'ratio_all', 'ratio_act', 'ratio_int', 'crstPctAct']) as Scursor:
+                        for Srow in Scursor:
+                            Urow[0] = Srow[0]
+                            Urow[1] = Srow[1]
+                            Urow[2] = Srow[2]
+                            Urow[3] = Srow[3]
+                            Urow[4] = Srow[4]
+                            Urow[5] = Srow[5]
+                            Urow[6] = Srow[6]
+                            Urow[7] = Srow[7]
+                            Urow[8] = Srow[8]
+                            Ucursor.updateRow(Urow)
     # inundation
-    for DCE in DCE_path_list:
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'intWid_wet', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'tot_area', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ff_area', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'pd_area', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ov_area', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'tot_pct', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ff_pct', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'pd_pct', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ov_pct', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'island_num', 'DOUBLE')
+    if has_vb and has_inun:
+        for DCE in DCE_path_list:
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'intWid_wet', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'tot_area', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ff_area', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'pd_area', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ov_area', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'tot_pct', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ff_pct', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'pd_pct', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'ov_pct', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'island_num', 'DOUBLE')
 
-        with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['intWid_wet', 'tot_area', 'ff_area', 'pd_area', 'ov_area', 'tot_pct', 'ff_pct', 'pd_pct', 'ov_pct', 'island_num']) as Ucursor:
-            for Urow in Ucursor:
-                with arcpy.da.SearchCursor(os.path.join(DCE, 'inundation.shp'), ['intWidth', 'tot_area', 'ff_area', 'pd_area', 'ov_area', 'tot_pct', 'ff_pct', 'pd_pct', 'ov_pct', 'island_num']) as Scursor:
-                    for Srow in Scursor:
-                        Urow[0] = Srow[0]
-                        Urow[1] = Srow[1]
-                        Urow[2] = Srow[2]
-                        Urow[3] = Srow[3]
-                        Urow[4] = Srow[4]
-                        Urow[5] = Srow[5]
-                        Urow[6] = Srow[6]
-                        Urow[7] = Srow[7]
-                        Urow[8] = Srow[8]
-                        Urow[9] = Srow[9]
-                        Ucursor.updateRow(Urow)
-    # minimum inundation
-    for DCE in DCE_path_list:
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'minWid_wet', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'minTot_pct', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'minFF_pct', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'minPD_pct', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'minOV_pct', 'DOUBLE')
+            with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['intWid_wet', 'tot_area', 'ff_area', 'pd_area', 'ov_area', 'tot_pct', 'ff_pct', 'pd_pct', 'ov_pct', 'island_num']) as Ucursor:
+                for Urow in Ucursor:
+                    with arcpy.da.SearchCursor(os.path.join(DCE, 'inundation.shp'), ['intWidth', 'tot_area', 'ff_area', 'pd_area', 'ov_area', 'tot_pct', 'ff_pct', 'pd_pct', 'ov_pct', 'island_num']) as Scursor:
+                        for Srow in Scursor:
+                            Urow[0] = Srow[0]
+                            Urow[1] = Srow[1]
+                            Urow[2] = Srow[2]
+                            Urow[3] = Srow[3]
+                            Urow[4] = Srow[4]
+                            Urow[5] = Srow[5]
+                            Urow[6] = Srow[6]
+                            Urow[7] = Srow[7]
+                            Urow[8] = Srow[8]
+                            Urow[9] = Srow[9]
+                            Ucursor.updateRow(Urow)
+        # minimum inundation
+        for DCE in DCE_path_list:
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'minWid_wet', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'minTot_pct', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'minFF_pct', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'minPD_pct', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'minOV_pct', 'DOUBLE')
 
-        with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['minWid_wet', 'minTot_pct', 'minFF_pct', 'minPD_pct', 'minOV_pct']) as Ucursor:
-            for Urow in Ucursor:
-                with arcpy.da.SearchCursor(os.path.join(DCE, 'error_min.shp'), ['intWidth', 'tot_pct', 'ff_pct', 'pd_pct', 'ov_pct']) as Scursor:
-                    for Srow in Scursor:
-                        Urow[0] = Srow[0]
-                        Urow[1] = Srow[1]
-                        Urow[2] = Srow[2]
-                        Urow[3] = Srow[3]
-                        Urow[4] = Srow[4]
-                        Ucursor.updateRow(Urow)
-    # max inundation
-    for DCE in DCE_path_list:
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maxWid_wet', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maxTot_pct', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maxFF_pct', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maxPD_pct', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maxOV_pct', 'DOUBLE')
+            with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['minWid_wet', 'minTot_pct', 'minFF_pct', 'minPD_pct', 'minOV_pct']) as Ucursor:
+                for Urow in Ucursor:
+                    with arcpy.da.SearchCursor(os.path.join(DCE, 'error_min.shp'), ['intWidth', 'tot_pct', 'ff_pct', 'pd_pct', 'ov_pct']) as Scursor:
+                        for Srow in Scursor:
+                            Urow[0] = Srow[0]
+                            Urow[1] = Srow[1]
+                            Urow[2] = Srow[2]
+                            Urow[3] = Srow[3]
+                            Urow[4] = Srow[4]
+                            Ucursor.updateRow(Urow)
+        # max inundation
+        for DCE in DCE_path_list:
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maxWid_wet', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maxTot_pct', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maxFF_pct', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maxPD_pct', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'maxOV_pct', 'DOUBLE')
 
-        with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['maxWid_wet', 'maxTot_pct', 'maxFF_pct', 'maxPD_pct', 'maxOV_pct']) as Ucursor:
-            for Urow in Ucursor:
-                with arcpy.da.SearchCursor(os.path.join(DCE, 'error_max.shp'), ['intWidth', 'tot_pct', 'ff_pct', 'pd_pct', 'ov_pct']) as Scursor:
-                    for Srow in Scursor:
-                        Urow[0] = Srow[0]
-                        Urow[1] = Srow[1]
-                        Urow[2] = Srow[2]
-                        Urow[3] = Srow[3]
-                        Urow[4] = Srow[4]
-                        Ucursor.updateRow(Urow)
+            with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['maxWid_wet', 'maxTot_pct', 'maxFF_pct', 'maxPD_pct', 'maxOV_pct']) as Ucursor:
+                for Urow in Ucursor:
+                    with arcpy.da.SearchCursor(os.path.join(DCE, 'error_max.shp'), ['intWidth', 'tot_pct', 'ff_pct', 'pd_pct', 'ov_pct']) as Scursor:
+                        for Srow in Scursor:
+                            Urow[0] = Srow[0]
+                            Urow[1] = Srow[1]
+                            Urow[2] = Srow[2]
+                            Urow[3] = Srow[3]
+                            Urow[4] = Srow[4]
+                            Ucursor.updateRow(Urow)
 
     # Additional site calcs
-    for DCE in DCE_path_list:
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'sinAllTwg', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'sinMainTwg', 'DOUBLE')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'setting', 'TEXT')
-        arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'huc8', 'TEXT')
+    if has_vb and has_thal:
+        for DCE in DCE_path_list:
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'sinAllTwg', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'sinMainTwg', 'DOUBLE')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'setting', 'TEXT')
+            arcpy.AddField_management(os.path.join(DCE, 'valley_bottom.shp'), 'huc8', 'TEXT')
 
-        with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['len_vall', 'twgLenTot', 'twgLenMain', 'sinAllTwg', 'sinMainTwg', 'setting', 'huc8']) as cursor:
-            for row in cursor:
-                row[3] = row[1] / row[0]
-                row[4] = row[2] / row[0]
-                row[5] = setting
-                row[6] = huc8
-                cursor.updateRow(row)
+            with arcpy.da.UpdateCursor(os.path.join(DCE, 'valley_bottom.shp'), ['len_vall', 'twgLenTot', 'twgLenMain', 'sinAllTwg', 'sinMainTwg', 'setting', 'huc8']) as cursor:
+                for row in cursor:
+                    row[3] = row[1] / row[0]
+                    row[4] = row[2] / row[0]
+                    row[5] = setting
+                    row[6] = huc8
+                    cursor.updateRow(row)
 
     # Add data to csv
     for DCE in DCE_path_list:
         # create output folder
         output = os.path.dirname(DCE)
 
-        # valley bottom
-        nparr = arcpy.da.FeatureClassToNumPyArray(os.path.join(DCE, 'valley_bottom.shp'), ['*'])
-        field_names = [f.name for f in arcpy.ListFields(os.path.join(DCE, 'valley_bottom.shp'))]
-        fields_str = ','.join(str(i) for i in field_names)
-        numpy.savetxt(output + '/' + '01_Metrics' + '/' + 'valley_bottom' + '_metrics.csv', nparr, fmt="%s", delimiter=",", header=str(fields_str), comments='')
-        # valley bottom centerline
-        nparr = arcpy.da.FeatureClassToNumPyArray(os.path.join(DCE, 'vb_centerline.shp'), ['*'])
-        field_names = [f.name for f in arcpy.ListFields(os.path.join(DCE, 'vb_centerline.shp'))]
-        fields_str = ','.join(str(i) for i in field_names)
-        numpy.savetxt(output + '/' + '01_Metrics' + '/' + 'vb_centerline' + '_metrics.csv', nparr, fmt="%s", delimiter=",", header=str(fields_str), comments='')
-        # main thalweg - channel slope and length
-        nparr = arcpy.da.FeatureClassToNumPyArray(os.path.join(DCE, 'twg_main.shp'), ['*'])
-        field_names = [f.name for f in arcpy.ListFields(os.path.join(DCE, 'twg_main.shp'))]
-        fields_str = ','.join(str(i) for i in field_names)
-        numpy.savetxt(output + '/' + '01_Metrics' + '/' + 'twg_main' + '_metrics.csv', nparr, fmt="%s", delimiter=",", header=str(fields_str), comments='')
-        # inundation
-        nparr = arcpy.da.FeatureClassToNumPyArray(os.path.join(DCE, 'inundation.shp'), ['*'])
-        field_names = [f.name for f in arcpy.ListFields(os.path.join(DCE, 'inundation.shp'))]
-        fields_str = ','.join(str(i) for i in field_names)
-        numpy.savetxt(output + '/' + '01_Metrics' + '/' + 'inundation' + '_metrics.csv', nparr, fmt="%s", delimiter=",", header=str(fields_str), comments='')
-        # dam crests
-        nparr = arcpy.da.FeatureClassToNumPyArray(os.path.join(DCE, 'dam_crests.shp'), ['*'])
-        field_names = [f.name for f in arcpy.ListFields(os.path.join(DCE, 'dam_crests.shp'))]
-        fields_str = ','.join(str(i) for i in field_names)
-        numpy.savetxt(output + '/' + '01_Metrics' + '/' + 'dam_crests' + '_metrics.csv', nparr, fmt="%s", delimiter=",", header=str(fields_str), comments='')
+        if has_vb:
+            # valley bottom
+            nparr = arcpy.da.FeatureClassToNumPyArray(os.path.join(DCE, 'valley_bottom.shp'), ['*'])
+            field_names = [f.name for f in arcpy.ListFields(os.path.join(DCE, 'valley_bottom.shp'))]
+            fields_str = ','.join(str(i) for i in field_names)
+            numpy.savetxt(output + '/' + '01_Metrics' + '/' + 'valley_bottom' + '_metrics.csv', nparr, fmt="%s", delimiter=",", header=str(fields_str), comments='')
+        if has_vbcen:
+            # valley bottom centerline
+            nparr = arcpy.da.FeatureClassToNumPyArray(os.path.join(DCE, 'vb_centerline.shp'), ['*'])
+            field_names = [f.name for f in arcpy.ListFields(os.path.join(DCE, 'vb_centerline.shp'))]
+            fields_str = ','.join(str(i) for i in field_names)
+            numpy.savetxt(output + '/' + '01_Metrics' + '/' + 'vb_centerline' + '_metrics.csv', nparr, fmt="%s", delimiter=",", header=str(fields_str), comments='')
+        if has_thal:
+            # main thalweg - channel slope and length
+            nparr = arcpy.da.FeatureClassToNumPyArray(os.path.join(DCE, 'twg_main.shp'), ['*'])
+            field_names = [f.name for f in arcpy.ListFields(os.path.join(DCE, 'twg_main.shp'))]
+            fields_str = ','.join(str(i) for i in field_names)
+            numpy.savetxt(output + '/' + '01_Metrics' + '/' + 'twg_main' + '_metrics.csv', nparr, fmt="%s", delimiter=",", header=str(fields_str), comments='')
+        if has_inun:
+            # inundation
+            nparr = arcpy.da.FeatureClassToNumPyArray(os.path.join(DCE, 'inundation.shp'), ['*'])
+            field_names = [f.name for f in arcpy.ListFields(os.path.join(DCE, 'inundation.shp'))]
+            fields_str = ','.join(str(i) for i in field_names)
+            numpy.savetxt(output + '/' + '01_Metrics' + '/' + 'inundation' + '_metrics.csv', nparr, fmt="%s", delimiter=",", header=str(fields_str), comments='')
+        if has_dam:
+            # dam crests
+            nparr = arcpy.da.FeatureClassToNumPyArray(os.path.join(DCE, 'dam_crests.shp'), ['*'])
+            field_names = [f.name for f in arcpy.ListFields(os.path.join(DCE, 'dam_crests.shp'))]
+            fields_str = ','.join(str(i) for i in field_names)
+            numpy.savetxt(output + '/' + '01_Metrics' + '/' + 'dam_crests' + '_metrics.csv', nparr, fmt="%s", delimiter=",", header=str(fields_str), comments='')
 
     ####################################################
 
     # Join metrics from both DCE into 1 csv
     # List of all csvs
-    outputs = []
+    if has_vbcen or has_vb or has_dam or has_thal or has_inun:
+        outputs = []
 
-    for DCE_Object in DCE_List:
-        outputs.append(os.path.join(project_path, '03_Analysis/{}/01_Metrics/valley_bottom_metrics.csv'.format(DCE_Object.name)))
+        for DCE_Object in DCE_List:
+            outputs.append(os.path.join(project_path, '03_Analysis/{}/01_Metrics/valley_bottom_metrics.csv'.format(DCE_Object.name)))
 
-    metrics = pd.concat([pd.read_csv(f) for f in outputs])
-    # Output csv
-    csv_out = os.path.join(project_path, '03_Analysis/CDs', 'metrics.csv')
-    metrics.to_csv(csv_out)
-    create_detailed_metrics(csv_out)
+        metrics = pd.concat([pd.read_csv(f) for f in outputs])
+        # Output csv
+        csv_out = os.path.join(project_path, '03_Analysis/CDs', 'metrics.csv')
+        metrics.to_csv(csv_out)
+        create_detailed_metrics(csv_out)
 
 
 
-    # Make Plots
-    data = pd.read_csv(os.path.join(project_path, '03_Analysis/CDs/metrics.csv'))
-    # plot with total percent inun and error bars
-    date = data.date.tolist()
-    tot_pct = data.tot_pct.tolist()
-    maxPct = data.maxTot_pct.tolist()
-    minPct = data.minTot_pct.tolist()
-    Uerror = []
-    Uzip = zip(maxPct, tot_pct)
-    for list1_i, list2_i in Uzip:
-        Uerror.append(list1_i - list2_i)
-    Lerror = []
-    Lzip = zip(tot_pct, minPct)
-    for list1_i, list2_i in Lzip:
-        Lerror.append(list1_i - list2_i)
-    # The position of the bars on the x-axis
-    r = []
-    for index, _ in enumerate(DCE_List):
-        r.append(index)
-    # Names of group and bar width
-    names = date
-    barWidth = 1
-    # Create brown bars
-    arcpy.AddMessage(tot_pct)
-    plt.bar(r, tot_pct, color='black', edgecolor='white', width=barWidth)
-    # Custom X axis
-    plt.xticks(r, names)
-    # asym error
-    a_error = [Lerror, Uerror]
-    plt.errorbar(r, tot_pct, yerr=a_error, fmt='o')
-    plt.ylabel('% Valley Bottom Inundation')
-    plt.ylim(0, 100)
-    plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'tot_pct.pdf'))
-    plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'tot_pct.png'))
+        # Make Plots
+        data = pd.read_csv(os.path.join(project_path, '03_Analysis/CDs/metrics.csv'))
+        # plot with total percent inun and error bars
+        date = data.date.tolist()
+        tot_pct = data.tot_pct.tolist()
+        maxPct = data.maxTot_pct.tolist()
+        minPct = data.minTot_pct.tolist()
+        Uerror = []
+        Uzip = zip(maxPct, tot_pct)
+        for list1_i, list2_i in Uzip:
+            Uerror.append(list1_i - list2_i)
+        Lerror = []
+        Lzip = zip(tot_pct, minPct)
+        for list1_i, list2_i in Lzip:
+            Lerror.append(list1_i - list2_i)
+        # The position of the bars on the x-axis
+        r = []
+        for index, _ in enumerate(DCE_List):
+            r.append(index)
+        # Names of group and bar width
+        names = date
+        barWidth = 1
+        # Create brown bars
+        arcpy.AddMessage(tot_pct)
+        plt.bar(r, tot_pct, color='black', edgecolor='white', width=barWidth)
+        # Custom X axis
+        plt.xticks(r, names)
+        # asym error
+        a_error = [Lerror, Uerror]
+        plt.errorbar(r, tot_pct, yerr=a_error, fmt='o')
+        plt.ylabel('% Valley Bottom Inundation')
+        plt.ylim(0, 100)
+        plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'tot_pct.pdf'))
+        plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'tot_pct.png'))
 
-    # Plot with total inun area symbolized by type
-    ff_area = data.ff_area.tolist()
-    pd_area = data.pd_area.tolist()
-    ov_area = data.ov_area.tolist()
-    # heights of ff + pd
-    ffpd_area = np.add(ff_area, pd_area).tolist()
-    # The position of the bars on the x-axis
-    r = []
-    for index, _ in enumerate(DCE_List):
-        r.append(float(index)/2)
-    # Names of group and bar width
-    names = date
-    barWidth = .5
-    # Create pink ff bars
-    plt.bar(r, ff_area, color='deeppink', edgecolor='white', width=barWidth, label='free flowing')
-    # Create blue pd bars
-    plt.bar(r, pd_area, bottom=ff_area, color='blue', edgecolor='white', width=barWidth, label='ponded')
-    # Create cyan ov bars
-    plt.bar(r, ov_area, bottom=ffpd_area, color='cyan', edgecolor='white', width=barWidth, label='overflow')
-    # Custom X axis
-    plt.xticks(r, names)
-    plt.ylabel('Inundated area (m^2)')
-    plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'area_types.pdf'))
-    plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'area_types.png'))
-    # Plot with total inun % symbolized by type
-    ff_pct = data.ff_pct.tolist()
-    pd_pct = data.pd_pct.tolist()
-    ov_pct = data.ov_pct.tolist()
-    # heights of ff + pd
-    ffpd_pct = np.add(ff_pct, pd_pct).tolist()
-    # The position of the bars on the x-axis
-    r = []
-    for index, _ in enumerate(DCE_List):
-        r.append(float(index)/2)
-    # Names of group and bar width
-    names = date
-    barWidth = .5
-    # Create pink ff bars
-    plt.bar(r, ff_pct, color='deeppink', edgecolor='white', width=barWidth, label='free flowing')
-    # Create blue pd bars
-    plt.bar(r, pd_pct, bottom=ff_pct, color='blue', edgecolor='white', width=barWidth, label='ponded')
-    # Create cyan ov bars
-    plt.bar(r, ov_pct, bottom=ffpd_pct, color='cyan', edgecolor='white', width=barWidth, label='overflow')
-    # Custom X axis
-    plt.xticks(r, names)
-    plt.ylim(0, 100)
-    plt.ylabel('% Valley Bottom Inundation')
-    plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'pct_types.pdf'))
-    plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'pct_types.png'))
+        # Plot with total inun area symbolized by type
+        ff_area = data.ff_area.tolist()
+        pd_area = data.pd_area.tolist()
+        ov_area = data.ov_area.tolist()
+        # heights of ff + pd
+        ffpd_area = np.add(ff_area, pd_area).tolist()
+        # The position of the bars on the x-axis
+        r = []
+        for index, _ in enumerate(DCE_List):
+            r.append(float(index)/2)
+        # Names of group and bar width
+        names = date
+        barWidth = .5
+        # Create pink ff bars
+        plt.bar(r, ff_area, color='deeppink', edgecolor='white', width=barWidth, label='free flowing')
+        # Create blue pd bars
+        plt.bar(r, pd_area, bottom=ff_area, color='blue', edgecolor='white', width=barWidth, label='ponded')
+        # Create cyan ov bars
+        plt.bar(r, ov_area, bottom=ffpd_area, color='cyan', edgecolor='white', width=barWidth, label='overflow')
+        # Custom X axis
+        plt.xticks(r, names)
+        plt.ylabel('Inundated area (m^2)')
+        plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'area_types.pdf'))
+        plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'area_types.png'))
+        # Plot with total inun % symbolized by type
+        ff_pct = data.ff_pct.tolist()
+        pd_pct = data.pd_pct.tolist()
+        ov_pct = data.ov_pct.tolist()
+        # heights of ff + pd
+        ffpd_pct = np.add(ff_pct, pd_pct).tolist()
+        # The position of the bars on the x-axis
+        r = []
+        for index, _ in enumerate(DCE_List):
+            r.append(float(index)/2)
+        # Names of group and bar width
+        names = date
+        barWidth = .5
+        # Create pink ff bars
+        plt.bar(r, ff_pct, color='deeppink', edgecolor='white', width=barWidth, label='free flowing')
+        # Create blue pd bars
+        plt.bar(r, pd_pct, bottom=ff_pct, color='blue', edgecolor='white', width=barWidth, label='ponded')
+        # Create cyan ov bars
+        plt.bar(r, ov_pct, bottom=ffpd_pct, color='cyan', edgecolor='white', width=barWidth, label='overflow')
+        # Custom X axis
+        plt.xticks(r, names)
+        plt.ylim(0, 100)
+        plt.ylabel('% Valley Bottom Inundation')
+        plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'pct_types.pdf'))
+        plt.savefig(os.path.join(project_path, '03_Analysis/CDs', 'pct_types.png'))
 
 def create_detailed_metrics(csv_in):
 
